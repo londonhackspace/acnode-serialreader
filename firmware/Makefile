@@ -72,7 +72,8 @@ DEFINES=\
 	-DDEBUG_STRING=$(DEBUG_STRING)
 
 CFLAGS=-mmcu=${MCU} $(DEFINES) -g -O2 -I$(CURDIR)/src/include -Wall -Werror \
-		-Wl,--gc-sections -flto -I$(CURDIR)/build $(CFLAGS_TARGET)
+		-Wl,--gc-sections -flto -I$(CURDIR)/build $(CFLAGS_TARGET) \
+		-I$(CURDIR)/src/target/$(TARGET)
 
 # build the output filename
 OUTPUT_NAME=$(PROJECT)-$(TARGET)
@@ -133,3 +134,6 @@ clean:
 	rm -f build/$(OUTPUT_NAME).map
 	# the directory should now be empty, so no need for -f
 	if [ -d build ]; then rm -r build; fi
+
+flash : build/$(OUTPUT_NAME).hex
+	avrdude -p ${AVRDUDE_TARGET} -c $(AVRDUDE_PROGRAMMER) -U flash:w:$< $(AVRDUDE_EXTRA_OPTS)

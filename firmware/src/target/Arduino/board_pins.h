@@ -1,31 +1,24 @@
 /******************************************************************************
-* ACNodeReader Firmware                                                       *
+* ACNodeReader Firmware - Arduino Pins                                        *
 *                                                                             *
 * (c) 2019 London Hackspace                                                   *
 * Released under a 3-clause BSD license. See included LICENSE file.           *
 *                                                                             *
 ******************************************************************************/
 
-#include "lights.h"
-
-#include <util/delay.h>
-
+#ifndef BOARD_PINS_H
+#define BOARD_PINS_H
 
 #include <avr/io.h>
 
+static const int LED_RED_PIN = 2;
+#define LED_RED_PORT PORTB
+#define LED_RED_DDR DDRB
+static const int LED_GREEN_PIN = 1;
+#define LED_GREEN_PORT PORTB
+#define LED_GREEN_DDR DDRB
+static const int LED_BLUE_PIN = 0;
+#define LED_BLUE_PORT PORTB
+#define LED_BLUE_DDR DDRB
 
-int main()
-{
-    lights_init();
-    while(1)
-    {
-        lights_set(255, 0, 0);
-        _delay_ms(500);
-        lights_set(0, 255, 0);
-        _delay_ms(500);
-        lights_set(0, 0, 255);
-        _delay_ms(500);
-    }
-
-    return 0;
-}
+#endif
