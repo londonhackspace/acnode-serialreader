@@ -110,12 +110,15 @@ include sources.mk
 
 OBJECTS_C = $(SOURCES:%=build/$(OUTPUT_NAME)/%)
 OBJECTS = $(OBJECTS_C:.c=.o)
+DEP = $(OBJECTS:%.o=%.d)
 
 all: build/$(OUTPUT_NAME).hex
 
+-include $(DEP)
+
 build/$(OUTPUT_NAME)/%.o : %.c
 	mkdir -p `dirname $@`
-	${CC} -c ${CFLAGS} $< -o $@
+	${CC} -c ${CFLAGS} -MMD $< -o $@
 
 build/$(OUTPUT_NAME).elf: ${OBJECTS}
 	${CC} ${CFLAGS} -Wl,-Map,$(@:.elf=.map) $^ -o $@
@@ -126,7 +129,7 @@ build/$(OUTPUT_NAME).elf: ${OBJECTS}
 	${OBJCOPY} -j .eeprom -O ihex $< ${@:%.hex=%-eeprom.hex}
 
 clean:
-	rm -f $(OBJECTS)
+	rm -f $(OBJECTS) $(DEP)
 	rm -f build/$(OUTPUT_NAME).elf
 	rm -f build/$(OUTPUT_NAME).hex
 	rm -f build/$(OUTPUT_NAME)-eeprom.hex
