@@ -1,0 +1,10 @@
+language: c
+dist: bionic
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y gcc-avr binutils-avr avr-libc
+
+script:
+  - cd firmware
+  - make
