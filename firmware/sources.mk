@@ -8,4 +8,7 @@
 
 SOURCES=src/main.c \
 		src/lights.c \
+		src/i2c.c \
+		src/pn532.c \
+		src/serial.c \
 		$(TARGET_SOURCES)
