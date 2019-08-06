@@ -11,4 +11,5 @@ SOURCES=src/main.c \
 		src/i2c.c \
 		src/pn532.c \
 		src/serial.c \
+		src/log.c \
 		$(TARGET_SOURCES)

@@ -9,10 +9,12 @@
 # The MCU target as used by GCC
 MCU=atmega328p
 
+ARDUINO_PORT ?= /dev/cu.usbmodem14101
+
 # The programming target
 AVRDUDE_TARGET=m328p
 AVRDUDE_PROGRAMMER=arduino
-AVRDUDE_EXTRA_OPTS=-P/dev/cu.usbmodem14101
+AVRDUDE_EXTRA_OPTS=-P${ARDUINO_PORT}
 
 # The clock frequency, in Hz of the crystal
 FREQUENCY=16000000

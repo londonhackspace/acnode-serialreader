@@ -7,8 +7,8 @@
 * (Yes, this one was repurposed from another of my own projects)              *
 ******************************************************************************/
 
-#ifndef Z80_BOARD_SERIAL_H
-#define Z80_BOARD_SERIAL_H
+#ifndef SERIAL_H
+#define SERIAL_H
 
 #include <avr/io.h>
 #include <stdbool.h>
@@ -53,9 +53,14 @@ unsigned int serial_get(unsigned char* buffer, unsigned int size);
 
 // send the contents of a buffer
 void serial_put(const unsigned char* buffer, unsigned int size);
+
+// Send the contents of a zero-terminated buffer
 void serial_putz(const char* buffer);
 
 // like serial_put but where buffer is in flash space
 void serial_put_P(const unsigned char* buffer, unsigned int size);
+
+// putz but for flash space
+void serial_putz_P(const char* buffer);
 
 #endif

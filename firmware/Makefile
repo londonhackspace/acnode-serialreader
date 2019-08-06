@@ -52,8 +52,12 @@ ifeq ($(DEBUG_STRING_SET),)
 $(error Invalid debug level $(DEBUG))
 endif
 
-CC=avr-gcc
-AS=avr-as
+
+# used for building the test engine
+CC ?= gcc
+
+CROSS_CC=avr-gcc
+CROSS_AS=avr-as
 OBJDUMP=avr-objdump
 OBJCOPY=avr-objcopy
 
@@ -69,7 +73,8 @@ include targets/$(TARGET).mk
 
 DEFINES=\
 	-DF_CPU=${FREQUENCY}UL \
-	-DDEBUG_STRING=$(DEBUG_STRING)
+	-DDEBUG_STRING=$(DEBUG_STRING) \
+	-DDEBUG_LEVEL=$(DEBUG)
 
 CFLAGS=-mmcu=${MCU} $(DEFINES) -g -O2 -I$(CURDIR)/src/include -Wall -Werror \
 		-Wl,--gc-sections -flto -I$(CURDIR)/build $(CFLAGS_TARGET) \
@@ -118,10 +123,10 @@ all: build/$(OUTPUT_NAME).hex
 
 build/$(OUTPUT_NAME)/%.o : %.c
 	mkdir -p `dirname $@`
-	${CC} -c ${CFLAGS} -MMD $< -o $@
+	${CROSS_CC} -c ${CFLAGS} -MMD $< -o $@
 
 build/$(OUTPUT_NAME).elf: ${OBJECTS}
-	${CC} ${CFLAGS} -Wl,-Map,$(@:.elf=.map) $^ -o $@
+	${CROSS_CC} ${CFLAGS} -Wl,-Map,$(@:.elf=.map) $^ -o $@
 	avr-size --format=avr --mcu=${TARGET} $@ | tee build/$(OUTPUT_NAME)_size.txt
 
 %.hex : %.elf

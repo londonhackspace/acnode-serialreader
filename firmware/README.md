@@ -21,3 +21,10 @@ Use, for example: `make TARGET=Arduino DEBUG=1`
 
 Mostly you probably just need to add files to sources.mk, which just exists to keep the main Makefile
 more high level config based, and save you having to dig into it just to add a file.
+
+Flashing
+----
+
+**Arduino:**
+Set ARDUINO_PORT to your serial port of the arduino, e.g:
+`make flash ARDUINO_PORT=/dev/ttyUSB0`

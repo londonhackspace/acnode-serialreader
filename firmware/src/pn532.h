@@ -9,9 +9,16 @@
 #ifndef PN532_H
 #define PN532_H
 
-static const int pn532_address = 0x48;
+#include <stdint.h>
 
-typedef struct pn532_context_struct pn532_context_t;
+static const int pn532_buffer_length = 64;
+
+typedef struct
+{
+    uint8_t buffer[64];
+    int buffer_length;
+    int packet_start;
+} pn532_context_t;
 
 // Pass in an uninitialised context to set it up
 void pn532_init(pn532_context_t* context);
@@ -22,6 +29,7 @@ void pn532_close(pn532_context_t* context);
 // Handle any pending actions from the card reader
 void pn532_poll(pn532_context_t* context);
 
-
+// query the firmware version of the device
+int pn532_get_firmware_version(pn532_context_t* context);
 
 #endif

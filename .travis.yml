@@ -1,10 +1,16 @@
 language: c
 dist: bionic
 
+# build each debug level, to make sure they all work
+env:
+  - DEBUG=0
+  - DEBUG=1
+  - DEBUG=2
+
 before_install:
   - sudo apt-get update
   - sudo apt-get install -y gcc-avr binutils-avr avr-libc
 
 script:
   - cd firmware
-  - make
+  - make DEBUG=$DEBUG

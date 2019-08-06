@@ -9,6 +9,7 @@
 
 
 #include "serial.h"
+#include "log.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -52,9 +53,7 @@ ISR(USART_RX_vect)
     // overflow? discard.
     if(serial_countSerialBufferSize() == SERIAL_BUFFER_SIZE)
     {
-        static const char overflow[] PROGMEM =
-            "Serial buffer overflow!!!!!!\n";
-        serial_put_P((unsigned const char*)overflow, sizeof(overflow));
+        ERROR_LOG_LITERAL("Serial buffer overflow!!!!!!");
         return;
     }
 
@@ -172,6 +171,7 @@ void serial_put(const unsigned char* buffer, unsigned int size)
     for(unsigned int i = 0; i < size; ++i)
     {
         serial_putchar(buffer[i]);
+        wdt_reset();
     }
 }
 
@@ -185,6 +185,16 @@ void serial_put_P(const unsigned char* buffer, unsigned int size)
     for(unsigned int i = 0; i < size; ++i)
     {
         char c = pgm_read_byte(buffer + i);
+        serial_putchar(c);
+        wdt_reset();
+    }
+}
+
+void serial_putz_P(const char* buffer)
+{
+    while(1)
+    {
+        char c = pgm_read_byte(buffer++);
         if(c == '\0')
         {
             break;

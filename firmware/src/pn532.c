@@ -8,17 +8,152 @@
 
 #include "pn532.h"
 #include "i2c.h"
+#include "log.h"
 
 #include <string.h>
 
-struct pn532_context_struct
-{
+// This is the 7-bit address, not the 8-bit address given in the docs
+static const int pn532_address = 0x24;
 
-};
+static void pn532_send_ack(pn532_context_t* context)
+{
+    // theoretically, we shouldn't need to add preamble
+    // since the spec seems to imply it's optional.
+    // Including some anyway though since it doesn't hurt, and
+    // might make things a bit more reliable
+    context->buffer[0] = 0x00;
+    context->buffer[1] = 0x00;
+    context->buffer[2] = 0xff;
+    context->buffer[3] = 0x00;
+    context->buffer[4] = 0xff;
+    i2c_write(pn532_address, context->buffer, 5);
+}
 
 void pn532_init(pn532_context_t* context)
 {
+    DEBUG_LOG_LITERAL("Initialising PN532");
     memset(context, 0, sizeof(pn532_context_t));
+
+    // gratuitous ack in case the PN532 is waiting for us
+    pn532_send_ack(context);
+}
+
+static void pn532_i2c_recv(pn532_context_t* context, bool ackable)
+{
+    context->buffer_length = 0;
+    uint8_t ready = 0;
+    while(!(ready & 1))
+    {
+        if(!i2c_start())
+        {
+            ERROR_LOG_LITERAL("Failed to start I2C");
+            return;
+        }
+        //DEBUG_LOG_LITERAL("Checking for ready");
+
+        if(!i2c_address(pn532_address, true))
+        {
+            ERROR_LOG_LITERAL("Failed to address PN532");
+            return;
+        }
+        i2c_recvdata(&ready, false);
+        if(!(ready & 1))
+        {
+            //DEBUG_LOG_LITERAL("Not Ready");
+            i2c_stop();
+        }
+    }
+    context->buffer_length = i2c_read_raw(context->buffer, 64);
+
+    // TODO: checksum check
+    if(ackable)
+    {
+        pn532_send_ack(context);
+    }
+}
+
+static void pn532_find_packet_start(pn532_context_t* context)
+{
+    context->packet_start = 1;
+    while(context->packet_start < (pn532_buffer_length-1))
+    {
+        if(context->buffer[context->packet_start] == 0x00 && 
+                context->buffer[context->packet_start+1] == 0xff)
+        {
+            return;
+        }
+        ++context->packet_start;
+    }
+}
+
+static void pn532_i2c_send(pn532_context_t* context)
+{
+    DEBUG_LOG_BUFFER("I2C Sending", context->buffer, context->buffer_length);
+    i2c_write(pn532_address, context->buffer, context->buffer_length);
+    // get ack
+    //DEBUG_LOG_LITERAL("Sent. Attempting to get ACK");
+    pn532_i2c_recv(context, false);
+    if(context->buffer_length == 0)
+    {
+        ERROR_LOG_LITERAL("Failed to get ack");
+        return;
+    }
+    pn532_find_packet_start(context);
+    if(context->buffer[context->packet_start+2] != 0 || context->buffer[context->packet_start+3] != 0xff)
+    {
+        ERROR_LOG_LITERAL("Received something not an ack");
+    }
+    else
+    {
+        //DEBUG_LOG_LITERAL("Got ack");
+    }
+}
+
+static void pn532_packet_init(pn532_context_t* context)
+{
+    // theoretically, we shouldn't need to add preamble
+    // since the spec seems to imply it's optional.
+    // Including some anyway though since it doesn't hurt, and
+    // might make things a bit more reliable
+    context->buffer[0] = 0x00;
+    context->buffer[1] = 0x00;
+    context->buffer[2] = 0xff;
+    // 3,4 are length and length checksum - ignore for now
+    context->buffer[5] = 0xd4;
+
+    context->buffer_length = 6;
+    context->packet_start = 1;
+}
+
+static void pn532_packet_finish(pn532_context_t* context)
+{
+    // length, length checksum
+    context->buffer[3] = context->buffer_length-5;
+    context->buffer[4] = (0xff-context->buffer[3])+1;
+
+    uint8_t sum = 0;
+    for(int i = (4+context->packet_start); i < context->buffer_length; ++i)
+    {
+        sum += context->buffer[i];
+    }
+    context->buffer[context->buffer_length++] = (0xff-sum)+1;
+    // Postamble because, well, see the notes on preamble
+    context->buffer[context->buffer_length++] = 0x00;
+}
+
+int pn532_get_firmware_version(pn532_context_t* context)
+{
+    pn532_packet_init(context);
+    context->buffer[context->buffer_length++] = 0x02;
+    pn532_packet_finish(context);
+    pn532_i2c_send(context);
+    DEBUG_LOG_LITERAL("Sent firmware version query");
+    // now receive the response
+    pn532_i2c_recv(context, true);
+    DEBUG_LOG_LITERAL("Probably got firmware version response");
+    pn532_find_packet_start(context);
+    DEBUG_LOG_BUFFER("PN532 Firmware Version", context->buffer+context->packet_start+7, 2);
+    return 0;
 }
 
 void pn532_close(pn532_context_t* context)
@@ -26,7 +161,30 @@ void pn532_close(pn532_context_t* context)
 
 }
 
+static void pn542_rfon(pn532_context_t* context)
+{
+    pn532_packet_init(context);
+    context->buffer[context->buffer_length++] = 0x32;
+    context->buffer[context->buffer_length++] = 0x01;
+    context->buffer[context->buffer_length++] = 0x03;
+    pn532_packet_finish(context);
+    pn532_i2c_send(context);
+}
+
 void pn532_poll(pn532_context_t* context)
 {
+    pn542_rfon(context);
 
+    pn532_packet_init(context);
+    context->buffer[context->buffer_length++] = 0x60;
+    context->buffer[context->buffer_length++] = 0x04;
+    context->buffer[context->buffer_length++] = 0x02;
+    context->buffer[context->buffer_length++] = 0x00;
+    //context->buffer[context->buffer_length++] = 0x01;
+    //context->buffer[context->buffer_length++] = 0x02;
+    //context->buffer[context->buffer_length++] = 0x03;
+    pn532_packet_finish(context);
+    pn532_i2c_send(context);
+    pn532_i2c_recv(context, true);
+    pn532_find_packet_start(context);
 }

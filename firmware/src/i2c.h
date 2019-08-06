@@ -7,10 +7,11 @@
 * (Yes, this one was repurposed from another of my own projects)              *
 ******************************************************************************/
 
-#ifndef Z80_BOARD_I2C_H
-#define Z80_BOARD_I2C_H
+#ifndef I2C_H
+#define I2C_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 void i2c_init();
 
@@ -22,5 +23,25 @@ void i2c_write(uint8_t address, uint8_t* data, uint8_t length);
 
 // used when you need to send a byte then read the response
 int i2c_writeread(uint8_t address, uint8_t data, uint8_t* buffer, uint8_t length);
+
+/////////////////////
+// Low level commands
+// PN532 needs some fairly careful handling
+/////////////////////
+
+// start communications
+bool i2c_start();
+
+// set the address
+bool i2c_address(uint8_t address, bool read);
+
+// raw read, assumes address already set and started
+int i2c_read_raw(uint8_t* buffer, uint8_t length);
+
+// read a single byte without resetting state
+bool i2c_recvdata(uint8_t* data, bool last);
+
+// force an i2c stop
+void i2c_stop();
 
 #endif

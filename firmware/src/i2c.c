@@ -8,6 +8,7 @@
 ******************************************************************************/
 
 #include "i2c.h"
+#include "log.h"
 #include <avr/interrupt.h>
 
 #include <stdbool.h>
@@ -30,7 +31,7 @@ void i2c_init()
 }
 
 // returns true on success
-static bool i2c_start()
+bool i2c_start()
 {
     TWCR = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
     // wait twint
@@ -39,12 +40,13 @@ static bool i2c_start()
     return ((TWSR & 0xF8) == 0x08) || ((TWSR & 0xF8) == 0x10);
 }
 
-static void i2c_stop()
+void i2c_stop()
 {
+    //DEBUG_LOG_LITERAL("Sending i2c Stop");
     TWCR = (1<<TWINT)| (1<<TWEN) | (1<<TWSTO);
 }
 
-static bool i2c_address(uint8_t address, bool read)
+bool i2c_address(uint8_t address, bool read)
 {
     TWDR = address << 1 | (read ? 1 : 0);
     TWCR = (1<<TWINT) | (1<<TWEN);
@@ -63,7 +65,7 @@ static bool i2c_senddata(uint8_t data)
     return ((TWSR & 0xF8) == 0x28);
 }
 
-static bool i2c_recvdata(uint8_t* data, bool last)
+bool i2c_recvdata(uint8_t* data, bool last)
 {
     TWCR = (1<<TWINT) | (last ? 0 : (1 << TWEA)) | (1<<TWEN);
     while (!(TWCR & (1<<TWINT)));
@@ -85,7 +87,7 @@ static bool i2c_recvdata(uint8_t* data, bool last)
     return false;
 }
 
-static int i2c_readinternal(uint8_t* buffer, uint8_t length)
+int i2c_read_raw(uint8_t* buffer, uint8_t length)
 {
     uint8_t counter = 0;
 
@@ -117,7 +119,7 @@ int i2c_read(uint8_t address, uint8_t* buffer, uint8_t length)
         return 0;
     }
     
-    return i2c_readinternal(buffer, length);
+    return i2c_read_raw(buffer, length);
 }
 
 void i2c_write(uint8_t address, uint8_t* data, uint8_t length)
@@ -126,6 +128,7 @@ void i2c_write(uint8_t address, uint8_t* data, uint8_t length)
     //send address + W
     if(!i2c_address(address, false))
     {
+        ERROR_LOG_LITERAL("Failed to address device");
         i2c_stop();
         return;
     }
@@ -134,6 +137,7 @@ void i2c_write(uint8_t address, uint8_t* data, uint8_t length)
     {
         if(!i2c_senddata(data[0]))
         {
+            ERROR_LOG_LITERAL("Failed to send data");
             i2c_stop(); return;
         }
         --length;
@@ -149,12 +153,14 @@ int i2c_writeread(uint8_t address, uint8_t data, uint8_t* buffer, uint8_t length
     //send address + W
     if(!i2c_address(address, false))
     {
+        ERROR_LOG_LITERAL("Failed to address device");
         i2c_stop();
         return 0;
     }
     // send byte
     if(!i2c_senddata(data))
     {
+        ERROR_LOG_LITERAL("Failed to send byte");
         i2c_stop();
         return 0;
     }
@@ -162,26 +168,29 @@ int i2c_writeread(uint8_t address, uint8_t data, uint8_t* buffer, uint8_t length
     i2c_start();
     if(!i2c_address(address, true))
     {
+        ERROR_LOG_LITERAL("Failed to address device");
         i2c_stop();
         return 0;
     }
     // now receive
-    return i2c_readinternal(buffer, length);
+    return i2c_read_raw(buffer, length);
 }
 
 uint8_t i2c_readbyte(uint8_t address)
 {
     if(!i2c_start())
     {
+        ERROR_LOG_LITERAL("Failed to start");
         return 0;
     }
 
     if(!i2c_address(address, true))
     {
+        ERROR_LOG_LITERAL("Failed to address device");
         i2c_stop();
         return 0;
     }
     uint8_t b;
-    i2c_readinternal(&b, 1);
+    i2c_read_raw(&b, 1);
     return b;
 }
