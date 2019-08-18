@@ -11,6 +11,7 @@
 ###############################################################################
 # TARGET sets the hardware target. It must be one of the following:
 # * Arduino - Atmega328p based hardware, for intiial development and testing
+# * DebugBoard09 - Debug Board v0.9 hardware
 
 # DEBUG sets the debuggyness of the firmware build.
 # Note: Not all targets may have the resources for all levels

@@ -16,7 +16,7 @@
 void serial_init(long baud);
 
 // This code was originally written for ATMega8515
-#ifdef __AVR_ATmega328P__
+#if 1 //defined(__AVR_ATmega328P__) || defined(__AVR_ATmega88P__)
 #define RXC RXC0
 #define TXEN TXEN0
 #define RXEN RXEN0
