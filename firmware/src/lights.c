@@ -7,7 +7,7 @@
 ******************************************************************************/
 
 #include "lights.h"
-#include <board_pins.h>
+#include "target.h"
 
 #include <avr/io.h>
 

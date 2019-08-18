@@ -26,5 +26,12 @@ Flashing
 ----
 
 **Arduino:**
+
 Set ARDUINO_PORT to your serial port of the arduino, e.g:
 `make flash ARDUINO_PORT=/dev/ttyUSB0`
+or 
+`make flash ARDUINO_PORT=/dev/ttyUSB0 DEBUG=2`
+
+**DebugBoard09**
+use a USBASP programmer, for example:
+`make flash TARGET=DebugBoard09 DEBUG=2`

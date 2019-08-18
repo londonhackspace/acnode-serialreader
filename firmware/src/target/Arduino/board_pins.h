@@ -9,6 +9,10 @@
 #ifndef BOARD_PINS_H
 #define BOARD_PINS_H
 
+#ifndef TARGET_SPECIFIC_H
+#error Please include target.h instead
+#endif
+
 #include <avr/io.h>
 
 static const int LED_RED_PIN = 2;
