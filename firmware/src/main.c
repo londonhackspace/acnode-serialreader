@@ -11,24 +11,19 @@
 #include "serial.h"
 #include "pn532.h"
 #include "log.h"
+#include "target.h"
+
+#ifdef HAS_SI7060
+#include "si7060.h"
+#endif
 
 #include <util/delay.h>
 #include <avr/io.h>
 
 pn532_context_t pn532_ctx;
 
-void temp()
-{
-    i2c_init();
-    i2c_write(0x24, (uint8_t*)"\0\0\0\0\0",5);
-
-    while(1);
-}
-
 int main()
 {
-    //temp();
-
     lights_init();
     i2c_init();
     serial_init(115200);
@@ -41,6 +36,10 @@ int main()
     while(1)
     {
         pn532_poll(&pn532_ctx);
+        #ifdef HAS_SI7060
+        uint8_t temperature __attribute__((unused)) = si7060_read_temperature();
+        DEBUG_LOG_BUFFER("Temperature is ", &temperature, 1);
+        #endif
     }
 
     return 0;

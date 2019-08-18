@@ -66,7 +66,7 @@ static void pn532_i2c_recv(pn532_context_t* context, bool ackable, int timeout)
         i2c_recvdata(&ready, false);
         if(!(ready & 1))
         {
-            DEBUG_LOG_LITERAL("Not Ready");
+            //DEBUG_LOG_LITERAL("Not Ready");
             i2c_stop();
             ++counter;
             _delay_ms(1);
@@ -215,7 +215,7 @@ void pn532_poll(pn532_context_t* context)
     context->buffer[context->buffer_length++] = 0x02; // FeliCa 212 kbps card
     pn532_packet_finish(context);
     pn532_i2c_send(context);
-    pn532_i2c_recv(context, true, 1000);
+    pn532_i2c_recv(context, true, 5000);
     pn532_find_packet_start(context);
     
     uint8_t cardCount = context->buffer[context->packet_start+6];

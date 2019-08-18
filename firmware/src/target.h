@@ -11,6 +11,7 @@
 #define TARGET_SPECIFIC_H
 
 #include <board_pins.h>
+#include <board_features.h>
 
 #ifndef LED_RED_PORT
 #error Please define LED_RED_PORT
