@@ -40,12 +40,6 @@ int main()
 
     while(1)
     {
-        lights_set(255, 0, 0);
-        _delay_ms(500);
-        lights_set(0, 255, 0);
-        _delay_ms(500);
-        lights_set(0, 0, 255);
-        _delay_ms(500);
         pn532_poll(&pn532_ctx);
     }
 

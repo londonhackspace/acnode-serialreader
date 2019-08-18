@@ -9,11 +9,15 @@
 #include "pn532.h"
 #include "i2c.h"
 #include "log.h"
+#include "lights.h"
 
+#include <util/delay.h>
 #include <string.h>
 
 // This is the 7-bit address, not the 8-bit address given in the docs
 static const int pn532_address = 0x24;
+
+static void pn532_set_sam_config(pn532_context_t* context);
 
 static void pn532_send_ack(pn532_context_t* context)
 {
@@ -36,12 +40,15 @@ void pn532_init(pn532_context_t* context)
 
     // gratuitous ack in case the PN532 is waiting for us
     pn532_send_ack(context);
+    pn532_set_sam_config(context);
+
 }
 
-static void pn532_i2c_recv(pn532_context_t* context, bool ackable)
+static void pn532_i2c_recv(pn532_context_t* context, bool ackable, int timeout)
 {
     context->buffer_length = 0;
     uint8_t ready = 0;
+    int counter = 0;
     while(!(ready & 1))
     {
         if(!i2c_start())
@@ -59,8 +66,15 @@ static void pn532_i2c_recv(pn532_context_t* context, bool ackable)
         i2c_recvdata(&ready, false);
         if(!(ready & 1))
         {
-            //DEBUG_LOG_LITERAL("Not Ready");
+            DEBUG_LOG_LITERAL("Not Ready");
             i2c_stop();
+            ++counter;
+            _delay_ms(1);
+            if(counter > timeout)
+            {
+                DEBUG_LOG_LITERAL("Timed out");
+                return;
+            }
         }
     }
     context->buffer_length = i2c_read_raw(context->buffer, 64);
@@ -92,7 +106,9 @@ static void pn532_i2c_send(pn532_context_t* context)
     i2c_write(pn532_address, context->buffer, context->buffer_length);
     // get ack
     //DEBUG_LOG_LITERAL("Sent. Attempting to get ACK");
-    pn532_i2c_recv(context, false);
+    // It seems the PN532 needs a bit of time to respond
+    _delay_us(500);
+    pn532_i2c_recv(context, false, 1000);
     if(context->buffer_length == 0)
     {
         ERROR_LOG_LITERAL("Failed to get ack");
@@ -149,11 +165,24 @@ int pn532_get_firmware_version(pn532_context_t* context)
     pn532_i2c_send(context);
     DEBUG_LOG_LITERAL("Sent firmware version query");
     // now receive the response
-    pn532_i2c_recv(context, true);
+    pn532_i2c_recv(context, true, 1000);
     DEBUG_LOG_LITERAL("Probably got firmware version response");
     pn532_find_packet_start(context);
     DEBUG_LOG_BUFFER("PN532 Firmware Version", context->buffer+context->packet_start+7, 2);
     return 0;
+}
+
+static void pn532_set_sam_config(pn532_context_t* context)
+{
+    // The docs say this mode is the default, but it seems like it might not be
+    // since without this, it doesn't ever read a card!
+    pn532_packet_init(context);
+    context->buffer[context->buffer_length++] = 0x14;
+    context->buffer[context->buffer_length++] = 0x01; // normal mode
+    context->buffer[context->buffer_length++] = 0x00; // no timeout (SAM - not used)
+    context->buffer[context->buffer_length++] = 0x00; // no IRQ pin
+    pn532_packet_finish(context);
+    pn532_i2c_send(context);   
 }
 
 void pn532_close(pn532_context_t* context)
@@ -161,7 +190,7 @@ void pn532_close(pn532_context_t* context)
 
 }
 
-static void pn542_rfon(pn532_context_t* context)
+static void pn532_rfon(pn532_context_t* context)
 {
     pn532_packet_init(context);
     context->buffer[context->buffer_length++] = 0x32;
@@ -171,20 +200,84 @@ static void pn542_rfon(pn532_context_t* context)
     pn532_i2c_send(context);
 }
 
+// This uses the auto poll mechanism rather than the "read id" mechanism used
+// by the arduino library
 void pn532_poll(pn532_context_t* context)
 {
-    pn542_rfon(context);
+    pn532_rfon(context);
 
     pn532_packet_init(context);
-    context->buffer[context->buffer_length++] = 0x60;
-    context->buffer[context->buffer_length++] = 0x04;
-    context->buffer[context->buffer_length++] = 0x02;
-    context->buffer[context->buffer_length++] = 0x00;
-    //context->buffer[context->buffer_length++] = 0x01;
-    //context->buffer[context->buffer_length++] = 0x02;
-    //context->buffer[context->buffer_length++] = 0x03;
+    context->buffer[context->buffer_length++] = 0x60; // auto poll
+    context->buffer[context->buffer_length++] = 0x03; // 3 polls
+    context->buffer[context->buffer_length++] = 0x01; // 1*150ms period
+    context->buffer[context->buffer_length++] = 0x00; // 106 kbps ISO/IEC14443 type A
+    context->buffer[context->buffer_length++] = 0x01; // Passive 106 kbps ISO/IEC14443-4B
+    context->buffer[context->buffer_length++] = 0x02; // FeliCa 212 kbps card
     pn532_packet_finish(context);
     pn532_i2c_send(context);
-    pn532_i2c_recv(context, true);
+    pn532_i2c_recv(context, true, 1000);
     pn532_find_packet_start(context);
+    
+    uint8_t cardCount = context->buffer[context->packet_start+6];
+
+    DEBUG_LOG_BUFFER("Cards Found", &cardCount, 1);
+
+    if(cardCount > 0)
+    {
+        uint8_t cardType = context->buffer[context->packet_start+7];
+        uint8_t idLength __attribute__((unused)) = 0;
+        uint8_t idOffset __attribute__((unused)) = 0;
+        switch(cardType & 0x0f)
+        {
+            case 0x0:
+                DEBUG_LOG_LITERAL("106 kbps ISO/IEC14443-4A");
+                idLength = context->buffer[context->packet_start+13];
+                idOffset = context->packet_start+14;
+                lights_set(0, 255, 0);
+                break;
+            case 0x1:
+                DEBUG_LOG_LITERAL("passive 212 kbps");
+                idLength = 8;
+                idOffset = context->packet_start+12;
+                lights_set(0, 0, 255);
+                break;
+            case 0x2:
+                DEBUG_LOG_LITERAL("passive 424 kbps");
+                idLength = 8;
+                idOffset = context->packet_start+12;
+                lights_set(0, 0, 255);
+                break;
+            default:
+                DEBUG_LOG_LITERAL("Unknown Card Type");
+                lights_set(255, 0, 0);
+                break;
+        };
+        DEBUG_LOG_BUFFER("Card type ", &cardType, 1);
+        DEBUG_LOG_BUFFER("Data Length ", context->buffer+context->packet_start+8, 1);
+        DEBUG_LOG_BUFFER("ID Length ", &idLength, 1);
+        DEBUG_LOG_BUFFER("Card ID ", context->buffer+idOffset, idLength);
+    }
+    else
+    {
+        lights_set(255, 0, 0);
+    }
 }
+
+// This behaves much like the Arduino library
+/*void pn532_poll(pn532_context_t* context)
+{
+    //pn532_rfon(context);
+
+    pn532_packet_init(context);
+    context->buffer[context->buffer_length++] = 0x4a;
+    context->buffer[context->buffer_length++] = 0x01;
+    context->buffer[context->buffer_length++] = 0x00;
+    pn532_packet_finish(context);
+    pn532_i2c_send(context);
+    pn532_i2c_recv(context, true, 1000);
+    pn532_find_packet_start(context);
+
+    uint8_t cardCount = context->buffer[context->packet_start+6];
+
+    DEBUG_LOG_BUFFER("Cards Found", &cardCount, 1);
+}*/
