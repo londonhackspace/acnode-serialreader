@@ -23,8 +23,9 @@ void i2c_init()
     I2C_PORT |= (1 << I2C_PIN_SDA) | (1 << I2C_PIN_SCL);
 
     // set bitrate scaler
-    TWBR = 3;
+    TWBR = 18;
     TWSR = 1; // prescaler 4
+    // -> 100KHz clock
 
     // enable TWI
     TWCR = (1 << TWEN);
