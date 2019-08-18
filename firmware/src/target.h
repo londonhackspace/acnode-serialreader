@@ -12,4 +12,28 @@
 
 #include <board_pins.h>
 
+#ifndef LED_RED_PORT
+#error Please define LED_RED_PORT
+#endif
+
+#ifndef LED_GREEN_PORT
+#error Please define LED_GREEN_PORT
+#endif
+
+#ifndef LED_BLUE_PORT
+#error Please define LED_BLUE_PORT
+#endif
+
+#ifndef LED_RED_DDR
+#error Please define LED_RED_DDR
+#endif
+
+#ifndef LED_GREEN_DDR
+#error Please define LED_GREEN_DDR
+#endif
+
+#ifndef LED_BLUE_DDR
+#error Please define LED_BLUE_DDR
+#endif
+
 #endif
