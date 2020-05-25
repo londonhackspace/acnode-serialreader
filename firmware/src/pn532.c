@@ -40,6 +40,10 @@ void pn532_init(pn532_context_t* context)
 
     // gratuitous ack in case the PN532 is waiting for us
     pn532_send_ack(context);
+
+    // wait for the pn532 to power up
+    _delay_ms(100);
+
     pn532_set_sam_config(context);
 
 }

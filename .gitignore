@@ -1,0 +1,4 @@
+.DS_STORE
+*.bak
+*.kicad_pcb-bak
+firmware/build

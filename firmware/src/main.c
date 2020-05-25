@@ -20,6 +20,8 @@
 #include <util/delay.h>
 #include <avr/io.h>
 
+#include <avr/pgmspace.h>
+
 pn532_context_t pn532_ctx;
 
 int main()
@@ -27,7 +29,14 @@ int main()
     lights_init();
     i2c_init();
     serial_init(115200);
+    while(0)
+    {
+        serial_putz_P(PSTR("Well Hello...\n"));
+    }
     INFO_LOG_LITERAL("Hi there...");
+
+    // give the pn532 time to start up
+    _delay_ms(20);
 
     pn532_init(&pn532_ctx);
 

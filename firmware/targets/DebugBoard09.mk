@@ -24,3 +24,6 @@ CFLAGS_TARGET=
 
 # target-specific sources
 TARGET_SOURCES=src/si7060.c
+
+fuses:
+	avrdude -p ${AVRDUDE_TARGET} -c $(AVRDUDE_PROGRAMMER) $(AVRDUDE_EXTRA_OPTS)

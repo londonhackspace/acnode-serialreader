@@ -36,17 +36,6 @@ F 3 "" H 3450 5500 50  0001 C CNN
 	1    3450 5500
 	1    0    0    -1  
 $EndComp
-$Comp
-L MCU_Microchip_ATmega:ATmega88-20AU U2
-U 1 1 5D3CE1ED
-P 3450 3650
-F 0 "U2" H 3450 2061 50  0000 C CNN
-F 1 "ATmega88-20AU" H 3450 1970 50  0000 C CNN
-F 2 "Package_QFP:TQFP-32_7x7mm_P0.8mm" H 3450 3650 50  0001 C CIN
-F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-2545-8-bit-AVR-Microcontroller-ATmega48-88-168_Datasheet.pdf" H 3450 3650 50  0001 C CNN
-	1    3450 3650
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	3550 2150 3550 1850
 Wire Wire Line
@@ -143,8 +132,6 @@ Connection ~ 2050 1500
 Wire Wire Line
 	2050 1500 2050 1450
 Wire Wire Line
-	1300 1500 1900 1500
-Wire Wire Line
 	1300 1200 1300 1150
 Connection ~ 1300 1150
 Wire Wire Line
@@ -155,29 +142,6 @@ Text Label 4300 4250 0    50   ~ 0
 uC_TX
 Text Label 4250 3850 0    50   ~ 0
 i2c_SCL
-$Comp
-L Device:Crystal_Small Y1
-U 1 1 5D3DF8AF
-P 4600 3100
-F 0 "Y1" V 4646 3012 50  0000 R CNN
-F 1 "16MHz" V 4555 3012 50  0000 R CNN
-F 2 "Crystal:Crystal_SMD_HC49-SD" H 4600 3100 50  0001 C CNN
-F 3 "~" H 4600 3100 50  0001 C CNN
-	1    4600 3100
-	0    -1   -1   0   
-$EndComp
-Wire Wire Line
-	4050 3050 4500 3050
-Wire Wire Line
-	4500 3050 4500 3000
-Wire Wire Line
-	4500 3000 4600 3000
-Wire Wire Line
-	4600 3200 4500 3200
-Wire Wire Line
-	4500 3200 4500 3150
-Wire Wire Line
-	4500 3150 4050 3150
 $Comp
 L Device:C C4
 U 1 1 5D3E19F3
@@ -488,15 +452,9 @@ Wire Wire Line
 Wire Wire Line
 	5350 3550 5350 3400
 Wire Wire Line
-	4600 3000 5100 3000
-Wire Wire Line
 	5100 3000 5100 2800
-Connection ~ 4600 3000
-Wire Wire Line
-	4600 3200 5450 3200
 Wire Wire Line
 	5450 3200 5450 3150
-Connection ~ 4600 3200
 Wire Wire Line
 	6450 3800 6500 3800
 Connection ~ 6500 3800
@@ -541,7 +499,7 @@ U 1 1 5D4A869B
 P 5300 2100
 F 0 "J2" V 4975 2150 50  0000 C CNN
 F 1 "AVR-ISP-6" V 4884 2150 50  0000 C CNN
-F 2 "Connector_IDC:IDC-Header_2x03_P2.54mm_Vertical" V 5050 2150 50  0001 C CNN
+F 2 "Tag-Connect:TC2030-MCP" V 5050 2150 50  0001 C CNN
 F 3 " ~" H 4025 1550 50  0001 C CNN
 	1    5300 2100
 	-1   0    0    1   
@@ -656,89 +614,6 @@ Wire Wire Line
 Connection ~ 2500 2450
 Wire Wire Line
 	2500 2850 2500 3050
-$Comp
-L Connector:Conn_01x03_Male J4
-U 1 1 5D4F0F53
-P 7350 2000
-F 0 "J4" H 7322 1932 50  0000 R CNN
-F 1 "Conn_01x03_Male" H 7322 2023 50  0000 R CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 7350 2000 50  0001 C CNN
-F 3 "~" H 7350 2000 50  0001 C CNN
-	1    7350 2000
-	-1   0    0    1   
-$EndComp
-Text GLabel 6900 1900 0    50   Input ~ 0
-i2c_SDA
-Text GLabel 6900 2050 0    50   Input ~ 0
-i2c_SCL
-$Comp
-L power:GND #PWR0120
-U 1 1 5D4F202D
-P 6900 2200
-F 0 "#PWR0120" H 6900 1950 50  0001 C CNN
-F 1 "GND" H 6905 2027 50  0000 C CNN
-F 2 "" H 6900 2200 50  0001 C CNN
-F 3 "" H 6900 2200 50  0001 C CNN
-	1    6900 2200
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	6900 2200 6900 2100
-Wire Wire Line
-	6900 2100 7100 2100
-Wire Wire Line
-	6900 2050 6950 2050
-Wire Wire Line
-	6950 2050 6950 2000
-Wire Wire Line
-	6950 2000 7150 2000
-Wire Wire Line
-	7150 1900 7050 1900
-Text Notes 7200 2250 0    50   ~ 0
-I2C Debug
-$Comp
-L Connector:Conn_01x03_Male J6
-U 1 1 5D501E68
-P 7300 2600
-F 0 "J6" H 7272 2532 50  0000 R CNN
-F 1 "Conn_01x03_Male" H 7272 2623 50  0000 R CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 7300 2600 50  0001 C CNN
-F 3 "~" H 7300 2600 50  0001 C CNN
-	1    7300 2600
-	-1   0    0    1   
-$EndComp
-Text Notes 7200 2850 0    50   ~ 0
-Serial Debug
-Text GLabel 6900 2600 0    50   Input ~ 0
-uC_RX
-Text GLabel 6900 2750 0    50   Input ~ 0
-uC_TX
-Wire Wire Line
-	6900 2750 7000 2750
-Wire Wire Line
-	7000 2750 7000 2700
-Wire Wire Line
-	7000 2700 7100 2700
-Wire Wire Line
-	7100 2600 6900 2600
-Wire Wire Line
-	7100 2500 7100 2100
-Connection ~ 7100 2100
-Wire Wire Line
-	7100 2100 7150 2100
-$Comp
-L Switch:SW_Push SW1
-U 1 1 5D5143B6
-P 5050 1650
-F 0 "SW1" H 5050 1935 50  0000 C CNN
-F 1 "SW_Push" H 5050 1844 50  0000 C CNN
-F 2 "Button_Switch_THT:SW_PUSH_6mm" H 5050 1850 50  0001 C CNN
-F 3 "~" H 5050 1850 50  0001 C CNN
-	1    5050 1650
-	1    0    0    -1  
-$EndComp
-Text Notes 4800 1800 0    50   ~ 0
-Reset Switch
 Text Label 4250 3750 0    50   ~ 0
 i2c_SDA
 Wire Wire Line
@@ -766,17 +641,6 @@ F 3 "~" H 5150 3450 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L power:GND #PWR0121
-U 1 1 5D58B0C3
-P 4250 1750
-F 0 "#PWR0121" H 4250 1500 50  0001 C CNN
-F 1 "GND" H 4255 1577 50  0000 C CNN
-F 2 "" H 4250 1750 50  0001 C CNN
-F 3 "" H 4250 1750 50  0001 C CNN
-	1    4250 1750
-	1    0    0    -1  
-$EndComp
-$Comp
 L ExtraParts:SI7060-B-00-IV U4
 U 1 1 5D4A707D
 P 7550 1300
@@ -791,14 +655,8 @@ Wire Wire Line
 	7100 1400 7050 1400
 Wire Wire Line
 	7050 1400 7050 1550
-Connection ~ 7050 1900
-Wire Wire Line
-	7050 1900 6900 1900
 Wire Wire Line
 	7100 1300 6950 1300
-Wire Wire Line
-	6950 1300 6950 2000
-Connection ~ 6950 2000
 $Comp
 L power:+5V #PWR0122
 U 1 1 5D4B4AEA
@@ -852,21 +710,6 @@ Connection ~ 8350 1500
 Wire Wire Line
 	8350 1500 8350 1550
 Wire Wire Line
-	4200 2000 4850 2000
-Wire Wire Line
-	5400 1700 5400 1650
-Wire Wire Line
-	5400 1650 5250 1650
-Connection ~ 5400 1700
-Wire Wire Line
-	4850 1650 4850 2000
-Connection ~ 4850 2000
-Wire Wire Line
-	4850 2000 4900 2000
-Wire Wire Line
-	4650 2300 4850 2300
-Connection ~ 4850 2300
-Wire Wire Line
 	4050 3350 4350 3350
 Wire Wire Line
 	4050 3450 4250 3450
@@ -887,74 +730,9 @@ Wire Wire Line
 Wire Wire Line
 	4850 3450 4850 3250
 Wire Wire Line
-	4850 3250 5900 3250
-Text Notes 4350 1100 0    50   ~ 0
-SPI debug
-$Comp
-L Connector:Conn_01x05_Male J7
-U 1 1 5D5B7FFA
-P 4450 1200
-F 0 "J7" V 4512 1444 50  0000 L CNN
-F 1 "Conn_01x05_Male" V 4603 1444 50  0000 L CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical" H 4450 1200 50  0001 C CNN
-F 3 "~" H 4450 1200 50  0001 C CNN
-	1    4450 1200
-	0    1    1    0   
-$EndComp
-Wire Wire Line
-	4250 1400 4250 1750
-Wire Wire Line
-	4350 1400 4350 2650
-Wire Wire Line
-	4350 2650 4050 2650
-$Comp
-L Connector:Conn_01x03_Male J8
-U 1 1 5D5D2B62
-P 2050 2550
-F 0 "J8" V 2204 2362 50  0000 R CNN
-F 1 "Conn_01x03_Male" V 2113 2362 50  0000 R CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 2050 2550 50  0001 C CNN
-F 3 "~" H 2050 2550 50  0001 C CNN
-	1    2050 2550
-	0    -1   -1   0   
-$EndComp
-Wire Wire Line
-	2350 1150 2400 1150
-Wire Wire Line
-	1950 2350 1700 2350
-Wire Wire Line
-	1700 2350 1700 1150
-Wire Wire Line
-	1300 1150 1700 1150
-Connection ~ 1700 1150
-Wire Wire Line
-	1700 1150 1750 1150
-Wire Wire Line
-	2400 1150 2400 2350
-Wire Wire Line
-	2400 2350 2150 2350
-Connection ~ 2400 1150
-Wire Wire Line
-	2400 1150 2750 1150
-Wire Wire Line
-	2050 2350 2050 2100
-Wire Wire Line
-	2050 2100 1900 2100
-Wire Wire Line
-	1900 2100 1900 1500
-Connection ~ 1900 1500
-Wire Wire Line
-	1900 1500 2050 1500
-Text Notes 1850 2650 0    50   ~ 0
-Power Debug
-Wire Wire Line
 	6850 1550 7050 1550
 Wire Wire Line
 	4050 3750 5000 3750
-Connection ~ 7050 1550
-Wire Wire Line
-	7050 1550 7050 1900
-Connection ~ 6950 1300
 $Comp
 L power:+5V #PWR0124
 U 1 1 5D660D0B
@@ -1018,61 +796,6 @@ Wire Wire Line
 	4950 3600 4950 3650
 Wire Wire Line
 	4950 3600 4650 3600
-Wire Wire Line
-	4300 2200 4550 2200
-Wire Wire Line
-	4250 2100 4450 2100
-$Comp
-L Device:R R10
-U 1 1 5D75B5AC
-P 4650 1600
-F 0 "R10" H 4600 1750 50  0000 L CNN
-F 1 "220R" V 4650 1500 50  0000 L CNN
-F 2 "Resistor_SMD:R_0603_1608Metric" V 4580 1600 50  0001 C CNN
-F 3 "~" H 4650 1600 50  0001 C CNN
-	1    4650 1600
-	1    0    0    -1  
-$EndComp
-$Comp
-L Device:R R9
-U 1 1 5D75BE10
-P 4550 1600
-F 0 "R9" H 4500 1750 50  0000 L CNN
-F 1 "220R" V 4550 1500 50  0000 L CNN
-F 2 "Resistor_SMD:R_0603_1608Metric" V 4480 1600 50  0001 C CNN
-F 3 "~" H 4550 1600 50  0001 C CNN
-	1    4550 1600
-	1    0    0    -1  
-$EndComp
-$Comp
-L Device:R R8
-U 1 1 5D75CB07
-P 4450 1600
-F 0 "R8" H 4400 1750 50  0000 L CNN
-F 1 "220R" V 4450 1500 50  0000 L CNN
-F 2 "Resistor_SMD:R_0603_1608Metric" V 4380 1600 50  0001 C CNN
-F 3 "~" H 4450 1600 50  0001 C CNN
-	1    4450 1600
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	4650 1750 4650 2300
-Wire Wire Line
-	4550 1750 4550 2200
-Connection ~ 4550 2200
-Wire Wire Line
-	4550 2200 4900 2200
-Wire Wire Line
-	4450 1750 4450 2100
-Connection ~ 4450 2100
-Wire Wire Line
-	4450 2100 4900 2100
-Wire Wire Line
-	4450 1450 4450 1400
-Wire Wire Line
-	4550 1450 4550 1400
-Wire Wire Line
-	4650 1450 4650 1400
 $Comp
 L Switch:SW_Push SW2
 U 1 1 5D7B07A3
@@ -1135,4 +858,94 @@ Wire Wire Line
 	3500 6000 3150 6000
 Wire Wire Line
 	3150 6000 3150 5900
+Wire Wire Line
+	4300 2200 4900 2200
+Wire Wire Line
+	4250 2100 4900 2100
+Wire Wire Line
+	4200 2000 4900 2000
+Connection ~ 7050 1550
+Wire Wire Line
+	7050 1550 7050 1900
+Connection ~ 6950 1300
+Wire Wire Line
+	7050 1900 6900 1900
+Wire Wire Line
+	6900 2050 6950 2050
+Text GLabel 6900 2050 0    50   Input ~ 0
+i2c_SCL
+Text GLabel 6900 1900 0    50   Input ~ 0
+i2c_SDA
+Wire Wire Line
+	6950 1300 6950 2050
+Wire Wire Line
+	1300 1150 1750 1150
+Wire Wire Line
+	1300 1500 2050 1500
+Wire Wire Line
+	2350 1150 2750 1150
+$Comp
+L MCU_Microchip_ATmega:ATmega88PB-AU U2
+U 1 1 5D98CB6F
+P 3450 3650
+F 0 "U2" H 3450 2061 50  0000 C CNN
+F 1 "ATmega88PB-AU" H 3450 1970 50  0000 C CNN
+F 2 "Package_QFP:TQFP-32_7x7mm_P0.8mm" H 3450 3650 50  0001 C CIN
+F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/40001909A.pdf" H 3450 3650 50  0001 C CNN
+	1    3450 3650
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:Crystal_GND24 Y1
+U 1 1 5E07B328
+P 4550 3100
+F 0 "Y1" V 4504 3344 50  0000 L CNN
+F 1 "Crystal_GND24" V 4595 3344 50  0000 L CNN
+F 2 "Crystal:Crystal_SMD_Abracon_ABM3B-4Pin_5.0x3.2mm" H 4550 3100 50  0001 C CNN
+F 3 "~" H 4550 3100 50  0001 C CNN
+	1    4550 3100
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	4850 3250 5900 3250
+Wire Wire Line
+	4050 3050 4300 3050
+Wire Wire Line
+	4300 3050 4300 2950
+Wire Wire Line
+	4300 2950 4550 2950
+Wire Wire Line
+	4550 3250 4050 3250
+Wire Wire Line
+	4050 3250 4050 3150
+Wire Wire Line
+	5100 3000 4800 3000
+Wire Wire Line
+	4800 3000 4800 2950
+Wire Wire Line
+	4800 2950 4550 2950
+Connection ~ 4550 2950
+Wire Wire Line
+	5450 3200 4700 3200
+Wire Wire Line
+	4700 3200 4700 3250
+Wire Wire Line
+	4700 3250 4550 3250
+Connection ~ 4550 3250
+$Comp
+L power:GND #PWR0120
+U 1 1 5E0B71A5
+P 4300 3100
+F 0 "#PWR0120" H 4300 2850 50  0001 C CNN
+F 1 "GND" H 4305 2927 50  0000 C CNN
+F 2 "" H 4300 3100 50  0001 C CNN
+F 3 "" H 4300 3100 50  0001 C CNN
+	1    4300 3100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4300 3100 4350 3100
+Connection ~ 4350 3100
+Wire Wire Line
+	4350 3100 4750 3100
 $EndSCHEMATC
