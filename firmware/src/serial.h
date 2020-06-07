@@ -35,10 +35,7 @@ void serial_init(long baud);
 #define RXCIE RXCIE0
 #endif
 
-static inline bool serial_data_available()
-{
-    return (UCSRA & (1 << RXC)) == (1 << RXC);
-}
+bool serial_data_available();
 
 // blocking call - get next available serial character
 char serial_getchar();

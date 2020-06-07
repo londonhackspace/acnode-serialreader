@@ -9,7 +9,6 @@
 
 
 #include "serial.h"
-#include "log.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -48,12 +47,22 @@ int serial_countSerialBufferSize()
     }
 }
 
+bool serial_data_available()
+{
+    return serial_countSerialBufferSize() > 0;
+}
+
+void lights_set(int,int,int);
+
 ISR(USART_RX_vect)
 {
+    lights_set(0,0,255);
     // overflow? discard.
     if(serial_countSerialBufferSize() == SERIAL_BUFFER_SIZE)
     {
-        ERROR_LOG_LITERAL("Serial buffer overflow!!!!!!");
+        static const char overflow[] PROGMEM =
+            "Serial buffer overflow!!!!!!\n";
+        serial_put_P((unsigned const char*)overflow, sizeof(overflow));
         return;
     }
 
@@ -133,12 +142,8 @@ char serial_getchar()
 
 void serial_putchar(unsigned char c)
 {
-    if(c == '\n')
-    {
-        serial_putchar('\r');
-    }
     // wait for any previous character to be sent
-    while(!(UCSRA & (1 << UDRE)));
+    while(!(UCSRA & (1 << UDRE))) wdt_reset();
     UDR = c;
 }
 
@@ -170,14 +175,18 @@ void serial_put(const unsigned char* buffer, unsigned int size)
 {
     for(unsigned int i = 0; i < size; ++i)
     {
-        serial_putchar(buffer[i]);
         wdt_reset();
+        serial_putchar(buffer[i]);
     }
 }
 
 void serial_putz(const char* buffer)
 {
-    serial_put((unsigned const char*)buffer, strlen(buffer));
+    for(unsigned int i = 0; buffer[i] != '\0'; ++i)
+    {
+        wdt_reset();
+        serial_putchar(buffer[i]);
+    }
 }
 
 void serial_put_P(const unsigned char* buffer, unsigned int size)
@@ -194,6 +203,7 @@ void serial_putz_P(const char* buffer)
 {
     while(1)
     {
+        wdt_reset();
         char c = pgm_read_byte(buffer++);
         if(c == '\0')
         {

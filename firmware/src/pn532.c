@@ -9,10 +9,11 @@
 #include "pn532.h"
 #include "i2c.h"
 #include "log.h"
-#include "lights.h"
 
 #include <util/delay.h>
 #include <string.h>
+
+#include <avr/wdt.h>
 
 // This is the 7-bit address, not the 8-bit address given in the docs
 static const int pn532_address = 0x24;
@@ -55,6 +56,7 @@ static void pn532_i2c_recv(pn532_context_t* context, bool ackable, int timeout)
     int counter = 0;
     while(!(ready & 1))
     {
+        wdt_reset();
         if(!i2c_start())
         {
             ERROR_LOG_LITERAL("Failed to start I2C");
@@ -111,7 +113,7 @@ static void pn532_i2c_send(pn532_context_t* context)
     // get ack
     //DEBUG_LOG_LITERAL("Sent. Attempting to get ACK");
     // It seems the PN532 needs a bit of time to respond
-    _delay_us(500);
+    _delay_us(1000);
     pn532_i2c_recv(context, false, 1000);
     if(context->buffer_length == 0)
     {
@@ -237,33 +239,25 @@ void pn532_poll(pn532_context_t* context)
                 DEBUG_LOG_LITERAL("106 kbps ISO/IEC14443-4A");
                 idLength = context->buffer[context->packet_start+13];
                 idOffset = context->packet_start+14;
-                lights_set(0, 255, 0);
                 break;
             case 0x1:
                 DEBUG_LOG_LITERAL("passive 212 kbps");
                 idLength = 8;
                 idOffset = context->packet_start+12;
-                lights_set(0, 0, 255);
                 break;
             case 0x2:
                 DEBUG_LOG_LITERAL("passive 424 kbps");
                 idLength = 8;
                 idOffset = context->packet_start+12;
-                lights_set(0, 0, 255);
                 break;
             default:
                 DEBUG_LOG_LITERAL("Unknown Card Type");
-                lights_set(255, 0, 0);
                 break;
         };
         DEBUG_LOG_BUFFER("Card type ", &cardType, 1);
         DEBUG_LOG_BUFFER("Data Length ", context->buffer+context->packet_start+8, 1);
         DEBUG_LOG_BUFFER("ID Length ", &idLength, 1);
         DEBUG_LOG_BUFFER("Card ID ", context->buffer+idOffset, idLength);
-    }
-    else
-    {
-        lights_set(255, 0, 0);
     }
 }
 

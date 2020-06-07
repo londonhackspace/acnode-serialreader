@@ -9,15 +9,20 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include "commsprotocol.h"
+
 #include <stdint.h>
 
 enum
 {
-	LOG_ERROR = 1,
-	LOG_WARN = 2,
-	LOG_INFO = 3,
-	LOG_DEBUG = 4
+	LOG_ERROR = 0,
+	LOG_WARN = 1,
+	LOG_INFO = 2,
+	LOG_DEBUG = 3
 };
+
+// from main.c
+extern comms_context_t comms;
 
 #if DEBUG_LEVEL > 0
 #include <avr/pgmspace.h>
@@ -65,8 +70,16 @@ enum
 #define DEBUG_LOG_BUFFER(NAME, BUF, LEN) while(0)
 #endif
 
-void emit_log(int level, const char* location, const char* message);
-void emit_log_p(int level, const char* location, const char* message);
+static inline void emit_log(int level, const char* location, const char* message)
+{ 
+    comms_send_logz(&comms, level, location, message);
+}
+
+static inline void emit_log_p(int level, const char* location, const char* message)
+{
+    comms_send_logz_flash(&comms, level, location, message);
+}
+
 void emit_debug_log_buffer(const char* location, const char* name, uint8_t* buffer, uint8_t length);
 
 // Use these to determine if you should log a particular level or not

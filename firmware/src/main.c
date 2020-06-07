@@ -12,6 +12,7 @@
 #include "pn532.h"
 #include "log.h"
 #include "target.h"
+#include "commsprotocol.h"
 
 #ifdef HAS_SI7060
 #include "si7060.h"
@@ -19,36 +20,55 @@
 
 #include <util/delay.h>
 #include <avr/io.h>
+#include <avr/interrupt.h>
 
 #include <avr/pgmspace.h>
+#include <avr/wdt.h>
 
 pn532_context_t pn532_ctx;
 
+comms_context_t comms;
+
 int main()
 {
-    lights_init();
-    i2c_init();
-    serial_init(115200);
-    while(0)
-    {
-        serial_putz_P(PSTR("Well Hello...\n"));
-    }
-    INFO_LOG_LITERAL("Hi there...");
+    // disable the watchdog timer so it doesn't interrupt us until we are ready
+    MCUSR = 0;
+    wdt_disable();
 
+    // interrupts are probably disabled, but to be safe, disable them until we're ready for it
+    cli();
+
+    // set up comms early so logging works
+    serial_init(115200);
+    comms_init(&comms);
+    sei();
+    comms_set_handlers(&comms, serial_put, serial_get);
+    
+    lights_init();
+
+    i2c_init();
+
+    INFO_LOG_LITERAL("Hi there...");
+    
     // give the pn532 time to start up
-    _delay_ms(20);
+    _delay_ms(50);
+    wdt_reset();
 
     pn532_init(&pn532_ctx);
 
     pn532_get_firmware_version(&pn532_ctx);
 
+    
+
+    // enable the watchdog with a fairly generous 500ms timeout
+    wdt_reset();
+    wdt_enable(WDTO_500MS);
+
     while(1)
     {
+        wdt_reset();
         pn532_poll(&pn532_ctx);
-        #ifdef HAS_SI7060
-        uint8_t temperature __attribute__((unused)) = si7060_read_temperature();
-        DEBUG_LOG_BUFFER("Temperature is ", &temperature, 1);
-        #endif
+        comms_poll(&comms);
     }
 
     return 0;

@@ -56,6 +56,7 @@ endif
 
 # used for building the test engine
 CC ?= gcc
+CXX ?= g++
 
 CROSS_CC=avr-gcc
 CROSS_AS=avr-as
@@ -66,6 +67,9 @@ OBJCOPY=avr-objcopy
 ifeq (,$(wildcard targets/$(TARGET).mk))
 $(error Unknown TARGET or target file not found. Check targets/$(TARGET).mk exists.)
 endif
+
+# create the all target up here so it's definitely the first
+all: full
 
 # include target-specific variables
 include targets/$(TARGET).mk
@@ -113,12 +117,13 @@ $(info )
 
 # include the sources file
 include sources.mk
+include tests.mk
 
 OBJECTS_C = $(SOURCES:%=build/$(OUTPUT_NAME)/%)
 OBJECTS = $(OBJECTS_C:.c=.o)
 DEP = $(OBJECTS:%.o=%.d)
 
-all: build/$(OUTPUT_NAME).hex
+full: build/$(OUTPUT_NAME).hex
 
 -include $(DEP)
 
@@ -127,7 +132,7 @@ build/$(OUTPUT_NAME)/%.o : %.c
 	${CROSS_CC} -c ${CFLAGS} -MMD $< -o $@
 
 build/$(OUTPUT_NAME).elf: ${OBJECTS}
-	${CROSS_CC} ${CFLAGS} -Wl,-Map,$(@:.elf=.map) $^ -o $@
+	${CROSS_CC} ${CFLAGS} -Wl,-Map,$(@:.elf=.map) $^ -lm -o $@
 	avr-size --format=avr --mcu=${TARGET} $@ | tee build/$(OUTPUT_NAME)_size.txt
 
 %.hex : %.elf

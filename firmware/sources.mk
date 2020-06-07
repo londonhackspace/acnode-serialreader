@@ -12,4 +12,5 @@ SOURCES=src/main.c \
 		src/pn532.c \
 		src/serial.c \
 		src/log.c \
+		src/commsprotocol.c \
 		$(TARGET_SOURCES)

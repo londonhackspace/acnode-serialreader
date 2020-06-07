@@ -10,6 +10,7 @@
 #include "i2c.h"
 #include "log.h"
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 
 #include <stdbool.h>
 
@@ -62,7 +63,7 @@ static bool i2c_senddata(uint8_t data)
     TWDR = data;
     TWCR = (1<<TWINT) | (1<<TWEN);
     // wait twint
-    while (!(TWCR & (1<<TWINT)));
+    while (!(TWCR & (1<<TWINT))) wdt_reset();
     return ((TWSR & 0xF8) == 0x28);
 }
 
@@ -94,6 +95,7 @@ int i2c_read_raw(uint8_t* buffer, uint8_t length)
 
     while(length)
     {
+        wdt_reset();
         //DEBUG_LOG_VAL("Receiving remaining", length);
         if(!i2c_recvdata(buffer, length == 1))
         {
@@ -127,15 +129,23 @@ void i2c_write(uint8_t address, uint8_t* data, uint8_t length)
 {
     if(!i2c_start()) { return; }
     //send address + W
-    if(!i2c_address(address, false))
+    int tries = 0;
+    while(!i2c_address(address, false) && tries++ <5)
     {
-        ERROR_LOG_LITERAL("Failed to address device");
+        wdt_reset();
+        WARN_LOG_LITERAL("Failed to address device - retrying");
         i2c_stop();
+        i2c_start();
+    }
+    if(tries >= 5)
+    {
+        ERROR_LOG_LITERAL("Giving up");
         return;
     }
     // send data
     while(length)
     {
+        wdt_reset();
         if(!i2c_senddata(data[0]))
         {
             ERROR_LOG_LITERAL("Failed to send data");
