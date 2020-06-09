@@ -1,4 +1,5 @@
 (sym_lib_table
   (lib (name ExtraParts)(type Legacy)(uri ${KIPRJMOD}/ExtraParts.lib)(options "")(descr ""))
   (lib (name Tag-Connect)(type Legacy)(uri ${KIPRJMOD}/Tag-Connect.lib)(options "")(descr ""))
+  (lib (name ACNodeReader-rescue)(type Legacy)(uri ${KIPRJMOD}/ACNodeReader-rescue.lib)(options "")(descr ""))
 )

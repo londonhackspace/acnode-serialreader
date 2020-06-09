@@ -1,6 +1,5 @@
 EESchema Schematic File Version 4
-LIBS:ACNodeReader-cache
-EELAYER 29 0
+EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -101,28 +100,6 @@ Wire Wire Line
 	2750 1150 2750 1050
 Wire Wire Line
 	2050 1800 2050 1500
-$Comp
-L Device:CP C1
-U 1 1 5D3DABEB
-P 1300 1350
-F 0 "C1" H 1418 1396 50  0000 L CNN
-F 1 "470u" H 1418 1305 50  0000 L CNN
-F 2 "Capacitor_SMD:CP_Elec_8x10" H 1338 1200 50  0001 C CNN
-F 3 "~" H 1300 1350 50  0001 C CNN
-	1    1300 1350
-	1    0    0    -1  
-$EndComp
-$Comp
-L Device:CP C2
-U 1 1 5D3DC471
-P 2750 1350
-F 0 "C2" H 2868 1396 50  0000 L CNN
-F 1 "470u" H 2868 1305 50  0000 L CNN
-F 2 "Capacitor_SMD:CP_Elec_8x10" H 2788 1200 50  0001 C CNN
-F 3 "~" H 2750 1350 50  0001 C CNN
-	1    2750 1350
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	2750 1200 2750 1150
 Connection ~ 2750 1150
@@ -306,12 +283,12 @@ $EndComp
 $Comp
 L power:+5V #PWR0112
 U 1 1 5D3FCC1C
-P 5350 3400
-F 0 "#PWR0112" H 5350 3250 50  0001 C CNN
-F 1 "+5V" H 5450 3450 50  0000 C CNN
-F 2 "" H 5350 3400 50  0001 C CNN
-F 3 "" H 5350 3400 50  0001 C CNN
-	1    5350 3400
+P 5650 3850
+F 0 "#PWR0112" H 5650 3700 50  0001 C CNN
+F 1 "+5V" H 5750 3900 50  0000 C CNN
+F 2 "" H 5650 3850 50  0001 C CNN
+F 3 "" H 5650 3850 50  0001 C CNN
+	1    5650 3850
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -424,7 +401,7 @@ F 3 "~" H 6300 3800 50  0001 C CNN
 	0    1    1    0   
 $EndComp
 Wire Wire Line
-	6150 3800 6050 3800
+	6150 3800 6100 3800
 $Comp
 L Device:C C5
 U 1 1 5D3E2FBD
@@ -439,18 +416,14 @@ $EndComp
 $Comp
 L Device:R R4
 U 1 1 5D47849B
-P 5350 3700
-F 0 "R4" H 5420 3746 50  0000 L CNN
-F 1 "10k" H 5420 3655 50  0000 L CNN
-F 2 "Resistor_SMD:R_0805_2012Metric" V 5280 3700 50  0001 C CNN
-F 3 "~" H 5350 3700 50  0001 C CNN
-	1    5350 3700
-	1    0    0    -1  
+P 5500 3950
+F 0 "R4" H 5570 3996 50  0000 L CNN
+F 1 "10k" H 5570 3905 50  0000 L CNN
+F 2 "Resistor_SMD:R_0805_2012Metric" V 5430 3950 50  0001 C CNN
+F 3 "~" H 5500 3950 50  0001 C CNN
+	1    5500 3950
+	0    1    1    0   
 $EndComp
-Wire Wire Line
-	5350 3950 5350 3850
-Wire Wire Line
-	5350 3550 5350 3400
 Wire Wire Line
 	5100 3000 5100 2800
 Wire Wire Line
@@ -465,36 +438,13 @@ Wire Wire Line
 Wire Wire Line
 	5750 2800 5750 2950
 Wire Wire Line
-	5750 2950 6050 2950
-Wire Wire Line
-	6050 2950 6050 3800
+	6100 2950 6100 3800
 Connection ~ 5750 2950
 Wire Wire Line
 	5750 2950 5750 3150
-Connection ~ 6050 3800
-Wire Wire Line
-	6050 3800 5900 3800
-Wire Wire Line
-	5450 3950 5350 3950
-Connection ~ 5350 3950
-Wire Wire Line
-	5750 3950 5750 3800
-Wire Wire Line
-	5750 3800 5900 3800
 Connection ~ 5900 3800
 $Comp
-L Device:C C7
-U 1 1 5D4A17E0
-P 5600 3950
-F 0 "C7" V 5450 3950 50  0000 C CNN
-F 1 "4.7nF" V 5750 3950 50  0000 C CNN
-F 2 "Capacitor_SMD:C_0603_1608Metric" H 5638 3800 50  0001 C CNN
-F 3 "~" H 5600 3950 50  0001 C CNN
-	1    5600 3950
-	0    1    1    0   
-$EndComp
-$Comp
-L Connector:AVR-ISP-6 J2
+L ACNodeReader-rescue:AVR-ISP-6-Connector J2
 U 1 1 5D4A869B
 P 5300 2100
 F 0 "J2" V 4975 2150 50  0000 C CNN
@@ -633,8 +583,8 @@ $Comp
 L Connector:Conn_01x04_Female J5
 U 1 1 5D569267
 P 5150 3450
-F 0 "J5" H 5178 3426 50  0000 L CNN
-F 1 "Conn_01x04_Female" H 5178 3335 50  0000 L CNN
+F 0 "J5" H 5150 3300 50  0000 L CNN
+F 1 "Conn_01x04_Female" H 4850 3200 50  0000 L CNN
 F 2 "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical" H 5150 3450 50  0001 C CNN
 F 3 "~" H 5150 3450 50  0001 C CNN
 	1    5150 3450
@@ -724,7 +674,7 @@ Wire Wire Line
 Wire Wire Line
 	4150 3600 4350 3600
 Wire Wire Line
-	5900 3250 5900 3800
+	5900 3250 5900 3400
 Wire Wire Line
 	4950 3450 4850 3450
 Wire Wire Line
@@ -885,7 +835,7 @@ Wire Wire Line
 Wire Wire Line
 	2350 1150 2750 1150
 $Comp
-L MCU_Microchip_ATmega:ATmega88PB-AU U2
+L ACNodeReader-rescue:ATmega88PB-AU-MCU_Microchip_ATmega U2
 U 1 1 5D98CB6F
 P 3450 3650
 F 0 "U2" H 3450 2061 50  0000 C CNN
@@ -907,7 +857,7 @@ F 3 "~" H 4550 3100 50  0001 C CNN
 	0    1    1    0   
 $EndComp
 Wire Wire Line
-	4850 3250 5900 3250
+	4850 3250 5700 3250
 Wire Wire Line
 	4050 3050 4300 3050
 Wire Wire Line
@@ -948,4 +898,67 @@ Wire Wire Line
 Connection ~ 4350 3100
 Wire Wire Line
 	4350 3100 4750 3100
+Wire Wire Line
+	5650 3950 5650 3850
+$Comp
+L Device:R R9
+U 1 1 5EE364C3
+P 5900 3550
+F 0 "R9" H 5830 3504 50  0000 R CNN
+F 1 "0R" H 5830 3595 50  0000 R CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 5830 3550 50  0001 C CNN
+F 3 "~" H 5900 3550 50  0001 C CNN
+	1    5900 3550
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	5900 3700 5900 3800
+$Comp
+L Device:R R8
+U 1 1 5EE3ACF5
+P 5700 3550
+F 0 "R8" H 5550 3600 50  0000 L CNN
+F 1 "DNF" H 5500 3500 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 5630 3550 50  0001 C CNN
+F 3 "~" H 5700 3550 50  0001 C CNN
+	1    5700 3550
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5700 3400 5700 3250
+Connection ~ 5700 3250
+Wire Wire Line
+	5700 3250 5900 3250
+Wire Wire Line
+	5700 3700 5700 3950
+Wire Wire Line
+	5700 3950 5650 3950
+Connection ~ 5650 3950
+Connection ~ 6100 3800
+Wire Wire Line
+	5900 3800 6100 3800
+Wire Wire Line
+	5750 2950 6100 2950
+$Comp
+L Device:C C1
+U 1 1 5EE74DE3
+P 1300 1350
+F 0 "C1" H 1415 1396 50  0000 L CNN
+F 1 "10u" H 1415 1305 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric" H 1338 1200 50  0001 C CNN
+F 3 "~" H 1300 1350 50  0001 C CNN
+	1    1300 1350
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:C C2
+U 1 1 5EE7545C
+P 2750 1350
+F 0 "C2" H 2865 1396 50  0000 L CNN
+F 1 "10u" H 2865 1305 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric" H 2788 1200 50  0001 C CNN
+F 3 "~" H 2750 1350 50  0001 C CNN
+	1    2750 1350
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC
