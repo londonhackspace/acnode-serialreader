@@ -1167,4 +1167,14 @@ Wire Wire Line
 	9350 3400 9550 3400
 Wire Wire Line
 	9350 3200 9950 3200
+Text Notes 8750 2850 0    50   ~ 0
+Connector for an i2c display
+Text Notes 5800 6150 0    50   ~ 0
+Connector for directly replacing a PN532 board\n(no 12V supply or RS422)
+Text Notes 3800 5400 0    50   ~ 0
+The Button
+Text Notes 1700 2450 0    50   ~ 0
+RGB LED output
+NoConn ~ 4050 2450
+NoConn ~ 4050 2650
 $EndSCHEMATC
