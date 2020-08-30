@@ -280,4 +280,6 @@ Wire Wire Line
 	4000 3650 4000 3100
 Wire Wire Line
 	4000 3100 4950 3100
+Text Notes 4600 4200 0    50   ~ 0
+Use ISL3170EIBZ/ISL3173EIBZ/ISL3176EIBZ\nfor 3.3V operation (e.g with launchpad!)
 $EndSCHEMATC
