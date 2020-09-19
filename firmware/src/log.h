@@ -24,11 +24,11 @@ enum
 // from main.c
 extern comms_context_t comms;
 
-#if DEBUG_LEVEL > 0
-#include <avr/pgmspace.h>
-
 #define LOG_STRINGIFY_X(X) #X
 #define LOG_STRINGIFY(X) LOG_STRINGIFY_X(X)
+
+#if DEBUG_LEVEL > 0
+#include <avr/pgmspace.h>
 
 #define EMIT_LOG(LEVEL, MSG) emit_log(LEVEL, PSTR(__FILE__ ":" LOG_STRINGIFY(__LINE__)), MSG)
 

@@ -14,5 +14,7 @@
 #endif
 
 #define HAS_SI7060 1
+// display not available
+// PWM LEDs not available
 
 #endif

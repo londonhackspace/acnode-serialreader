@@ -10,6 +10,8 @@
 #include "i2c.h"
 #include "target.h"
 
+#include <avr/wdt.h>
+
 #ifndef HAS_SI7060
 #error Unsupported platform
 #endif
@@ -26,6 +28,7 @@ int si7060_read_temperature()
     do
     {
         i2c_writeread(si7060_address, 0xc4, data, 1);
+        wdt_reset();
     } while((data[0] & 0x80) == 0x80);
 
     i2c_writeread(si7060_address, 0xc1, data, 1);

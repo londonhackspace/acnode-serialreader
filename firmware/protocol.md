@@ -62,8 +62,8 @@ Valid but unknown messages should be ACKnowledged to avoid the other end resendi
 | 0x01 | 0 | Query Reader Version | Host->Reader |
 | 0x81 | Varies | Reader Version Response | Reader->Host |
 | 0x82 | Varies | Log Message | Reader->Host |
-| 0x0f | 1 | Unknown Message Reply | Host->Reader |
-| 0x8f | 1 | Unknown Message Reply | Reader->Host |
+| 0x7f | 1 | Unknown Message Reply | Host->Reader |
+| 0xff | 1 | Unknown Message Reply | Reader->Host |
 
 #### Query Reader Version (0x01)
 *Description:* Get the version of the firmware running on the board
@@ -94,7 +94,7 @@ Valid but unknown messages should be ACKnowledged to avoid the other end resendi
 | 2 | Informational |
 | 3 | Debug |
 
-#### Unknown Message Reply (0x0f or 0x8f)
+#### Unknown Message Reply (0x7f or 0xff)
 *Description:* Reply to unknown message
 *Direction:* Host->Reader or Reader->Host
 *Payload:* 1 byte - message code of unknown message

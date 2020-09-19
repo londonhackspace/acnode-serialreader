@@ -26,6 +26,12 @@ void lights_init()
 
 void lights_set(int red, int green, int blue)
 {
+    #ifdef LEDS_COMMON_ANODE
+    red = 255-red;
+    green = 255-green;
+    blue = 255-blue;
+    #endif
+
     if(red)
     {
         LED_RED_PORT |= (1 << LED_RED_PIN);

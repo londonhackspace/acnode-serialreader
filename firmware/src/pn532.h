@@ -15,21 +15,19 @@ static const int pn532_buffer_length = 64;
 
 typedef struct
 {
+    // scratch space
     uint8_t buffer[64];
     int buffer_length;
     int packet_start;
+
+    // state
+    int current_state;
+    unsigned long int last_transition;
 } pn532_context_t;
 
 // Pass in an uninitialised context to set it up
 void pn532_init(pn532_context_t* context);
 
-// execute any cleanup needed
-void pn532_close(pn532_context_t* context);
-
-// Handle any pending actions from the card reader
 void pn532_poll(pn532_context_t* context);
-
-// query the firmware version of the device
-int pn532_get_firmware_version(pn532_context_t* context);
 
 #endif

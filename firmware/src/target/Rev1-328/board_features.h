@@ -1,7 +1,7 @@
 /******************************************************************************
-* ACNodeReader Firmware - Arduino Features                                    *
+* ACNodeReader Firmware - Rev1 (w/328pb) Features                             *
 *                                                                             *
-* (c) 2019 London Hackspace                                                   *
+* (c) 2020 London Hackspace                                                   *
 * Released under a 3-clause BSD license. See included LICENSE file.           *
 *                                                                             *
 ******************************************************************************/
@@ -13,6 +13,10 @@
 #error Please include target.h instead
 #endif
 
+// SI7060 not available
 #define HAS_DISPLAY 1 // may or may not be fitted
+#define HAS_PWM_LEDS 1
+#define LEDS_COMMON_ANODE 1
+
 
 #endif

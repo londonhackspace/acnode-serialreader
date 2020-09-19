@@ -7,128 +7,65 @@
 ******************************************************************************/
 
 #include "pn532.h"
-#include "i2c.h"
 #include "log.h"
+#include "tickcounter.h"
+#include "i2c.h"
 
-#include <util/delay.h>
+#include <stdbool.h>
 #include <string.h>
-
-#include <avr/wdt.h>
 
 // This is the 7-bit address, not the 8-bit address given in the docs
 static const int pn532_address = 0x24;
 
-static void pn532_set_sam_config(pn532_context_t* context);
-
-static void pn532_send_ack(pn532_context_t* context)
+enum
 {
-    // theoretically, we shouldn't need to add preamble
-    // since the spec seems to imply it's optional.
-    // Including some anyway though since it doesn't hurt, and
-    // might make things a bit more reliable
-    context->buffer[0] = 0x00;
-    context->buffer[1] = 0x00;
-    context->buffer[2] = 0xff;
-    context->buffer[3] = 0x00;
-    context->buffer[4] = 0xff;
-    i2c_write(pn532_address, context->buffer, 5);
-}
+    STATE_INITIAL = 0,
+    STATE_WAIT_STARTUP,
+    STATE_WAIT_CONFIG_ACK,
+    STATE_IDLE,
+    STATE_RFON_WAIT_ACK,
+    STATE_WAIT_CARDS_ACK,
+    STATE_WAIT_CARDS,
+};
+
+static void pn532_send_ack(pn532_context_t* context);
+static void pn532_state_transition(pn532_context_t* context, int newState);
+static void pn532_state_hold(pn532_context_t* context);
+static bool pn532_state_expired(pn532_context_t* context, unsigned long int timeout);
+static void pn532_packet_init(pn532_context_t* context);
+static bool pn532_i2c_recv(pn532_context_t* context, bool ackable);
+static void pn532_set_sam_config(pn532_context_t* context);
+static void pn532_packet_finish(pn532_context_t* context);
+static void pn532_i2c_send(pn532_context_t* context);
+static bool pn532_get_ack(pn532_context_t* context);
+static void pn532_find_packet_start(pn532_context_t* context);
+static void pn532_rfon(pn532_context_t* context);
 
 void pn532_init(pn532_context_t* context)
 {
     DEBUG_LOG_LITERAL("Initialising PN532");
     memset(context, 0, sizeof(pn532_context_t));
 
-    // gratuitous ack in case the PN532 is waiting for us
-    pn532_send_ack(context);
-
-    // wait for the pn532 to power up
-    _delay_ms(100);
-
-    pn532_set_sam_config(context);
+    context->last_transition = tickcounter_get();
+    context->current_state = STATE_INITIAL;
 
 }
 
-static void pn532_i2c_recv(pn532_context_t* context, bool ackable, int timeout)
+static void pn532_state_transition(pn532_context_t* context, int newState)
 {
-    context->buffer_length = 0;
-    uint8_t ready = 0;
-    int counter = 0;
-    while(!(ready & 1))
-    {
-        wdt_reset();
-        if(!i2c_start())
-        {
-            ERROR_LOG_LITERAL("Failed to start I2C");
-            return;
-        }
-        //DEBUG_LOG_LITERAL("Checking for ready");
-
-        if(!i2c_address(pn532_address, true))
-        {
-            ERROR_LOG_LITERAL("Failed to address PN532");
-            return;
-        }
-        i2c_recvdata(&ready, false);
-        if(!(ready & 1))
-        {
-            //DEBUG_LOG_LITERAL("Not Ready");
-            i2c_stop();
-            ++counter;
-            _delay_ms(1);
-            if(counter > timeout)
-            {
-                DEBUG_LOG_LITERAL("Timed out");
-                return;
-            }
-        }
-    }
-    context->buffer_length = i2c_read_raw(context->buffer, 64);
-
-    // TODO: checksum check
-    if(ackable)
-    {
-        pn532_send_ack(context);
-    }
+    DEBUG_LOG_LITERAL("State Transition");
+    context->last_transition = tickcounter_get();
+    context->current_state = newState;
 }
 
-static void pn532_find_packet_start(pn532_context_t* context)
+static void pn532_state_hold(pn532_context_t* context)
 {
-    context->packet_start = 1;
-    while(context->packet_start < (pn532_buffer_length-1))
-    {
-        if(context->buffer[context->packet_start] == 0x00 && 
-                context->buffer[context->packet_start+1] == 0xff)
-        {
-            return;
-        }
-        ++context->packet_start;
-    }
+    context->last_transition = tickcounter_get();
 }
 
-static void pn532_i2c_send(pn532_context_t* context)
+static bool pn532_state_expired(pn532_context_t* context, unsigned long int timeout)
 {
-    DEBUG_LOG_BUFFER("I2C Sending", context->buffer, context->buffer_length);
-    i2c_write(pn532_address, context->buffer, context->buffer_length);
-    // get ack
-    //DEBUG_LOG_LITERAL("Sent. Attempting to get ACK");
-    // It seems the PN532 needs a bit of time to respond
-    _delay_us(1000);
-    pn532_i2c_recv(context, false, 1000);
-    if(context->buffer_length == 0)
-    {
-        ERROR_LOG_LITERAL("Failed to get ack");
-        return;
-    }
-    pn532_find_packet_start(context);
-    if(context->buffer[context->packet_start+2] != 0 || context->buffer[context->packet_start+3] != 0xff)
-    {
-        ERROR_LOG_LITERAL("Received something not an ack");
-    }
-    else
-    {
-        //DEBUG_LOG_LITERAL("Got ack");
-    }
+    return compare_timer_values(tickcounter_get(), context->last_transition) >= timeout;
 }
 
 static void pn532_packet_init(pn532_context_t* context)
@@ -163,19 +100,60 @@ static void pn532_packet_finish(pn532_context_t* context)
     context->buffer[context->buffer_length++] = 0x00;
 }
 
-int pn532_get_firmware_version(pn532_context_t* context)
+static void pn532_i2c_send(pn532_context_t* context)
 {
-    pn532_packet_init(context);
-    context->buffer[context->buffer_length++] = 0x02;
-    pn532_packet_finish(context);
-    pn532_i2c_send(context);
-    DEBUG_LOG_LITERAL("Sent firmware version query");
-    // now receive the response
-    pn532_i2c_recv(context, true, 1000);
-    DEBUG_LOG_LITERAL("Probably got firmware version response");
-    pn532_find_packet_start(context);
-    DEBUG_LOG_BUFFER("PN532 Firmware Version", context->buffer+context->packet_start+7, 2);
-    return 0;
+    DEBUG_LOG_BUFFER("I2C Sending", context->buffer, context->buffer_length);
+    i2c_write(pn532_address, context->buffer, context->buffer_length);
+}
+
+static bool pn532_i2c_recv(pn532_context_t* context, bool ackable)
+{
+    context->buffer_length = 0;
+    uint8_t ready = 0;
+    
+    if(!i2c_start())
+    {
+        ERROR_LOG_LITERAL("Failed to start I2C");
+        return false;
+    }
+
+    if(!i2c_address(pn532_address, true))
+    {
+        ERROR_LOG_LITERAL("Failed to address PN532");
+        i2c_stop();
+        return false;
+    }
+    i2c_recvdata(&ready, false);
+    if(!(ready & 1))
+    {
+        DEBUG_LOG_LITERAL("not Ready");
+        i2c_stop();
+        return false;
+    }
+
+    context->buffer_length = i2c_read_raw(context->buffer, 64);
+
+    // TODO: checksum check
+    if(ackable)
+    {
+        pn532_send_ack(context);
+    }
+
+    return true;
+}
+
+static void pn532_send_ack(pn532_context_t* context)
+{
+    // theoretically, we shouldn't need to add preamble
+    // since the spec seems to imply it's optional.
+    // Including some anyway though since it doesn't hurt, and
+    // might make things a bit more reliable
+    context->buffer[0] = 0x00;
+    context->buffer[1] = 0x00;
+    context->buffer[2] = 0xff;
+    context->buffer[3] = 0x00;
+    context->buffer[4] = 0xff;
+    i2c_write(pn532_address, context->buffer, 5);
 }
 
 static void pn532_set_sam_config(pn532_context_t* context)
@@ -191,9 +169,34 @@ static void pn532_set_sam_config(pn532_context_t* context)
     pn532_i2c_send(context);   
 }
 
-void pn532_close(pn532_context_t* context)
+static bool pn532_get_ack(pn532_context_t* context)
 {
+    pn532_i2c_recv(context, false);
+    if(context->buffer_length == 0)
+    {
+        return false;
+    }
+    pn532_find_packet_start(context);
+    if(context->buffer[context->packet_start+2] != 0 || context->buffer[context->packet_start+3] != 0xff)
+    {
+        return false;
+    }
+    
+    return true;
+}
 
+static void pn532_find_packet_start(pn532_context_t* context)
+{
+    context->packet_start = 1;
+    while(context->packet_start < (pn532_buffer_length-1))
+    {
+        if(context->buffer[context->packet_start] == 0x00 && 
+                context->buffer[context->packet_start+1] == 0xff)
+        {
+            return;
+        }
+        ++context->packet_start;
+    }
 }
 
 static void pn532_rfon(pn532_context_t* context)
@@ -206,12 +209,8 @@ static void pn532_rfon(pn532_context_t* context)
     pn532_i2c_send(context);
 }
 
-// This uses the auto poll mechanism rather than the "read id" mechanism used
-// by the arduino library
-void pn532_poll(pn532_context_t* context)
+static void pn532_check_for_cards(pn532_context_t* context)
 {
-    pn532_rfon(context);
-
     pn532_packet_init(context);
     context->buffer[context->buffer_length++] = 0x60; // auto poll
     context->buffer[context->buffer_length++] = 0x03; // 3 polls
@@ -221,61 +220,104 @@ void pn532_poll(pn532_context_t* context)
     context->buffer[context->buffer_length++] = 0x02; // FeliCa 212 kbps card
     pn532_packet_finish(context);
     pn532_i2c_send(context);
-    pn532_i2c_recv(context, true, 5000);
-    pn532_find_packet_start(context);
-    
-    uint8_t cardCount = context->buffer[context->packet_start+6];
-
-    DEBUG_LOG_BUFFER("Cards Found", &cardCount, 1);
-
-    if(cardCount > 0)
-    {
-        uint8_t cardType = context->buffer[context->packet_start+7];
-        uint8_t idLength __attribute__((unused)) = 0;
-        uint8_t idOffset __attribute__((unused)) = 0;
-        switch(cardType & 0x0f)
-        {
-            case 0x0:
-                DEBUG_LOG_LITERAL("106 kbps ISO/IEC14443-4A");
-                idLength = context->buffer[context->packet_start+13];
-                idOffset = context->packet_start+14;
-                break;
-            case 0x1:
-                DEBUG_LOG_LITERAL("passive 212 kbps");
-                idLength = 8;
-                idOffset = context->packet_start+12;
-                break;
-            case 0x2:
-                DEBUG_LOG_LITERAL("passive 424 kbps");
-                idLength = 8;
-                idOffset = context->packet_start+12;
-                break;
-            default:
-                DEBUG_LOG_LITERAL("Unknown Card Type");
-                break;
-        };
-        DEBUG_LOG_BUFFER("Card type ", &cardType, 1);
-        DEBUG_LOG_BUFFER("Data Length ", context->buffer+context->packet_start+8, 1);
-        DEBUG_LOG_BUFFER("ID Length ", &idLength, 1);
-        DEBUG_LOG_BUFFER("Card ID ", context->buffer+idOffset, idLength);
-    }
 }
 
-// This behaves much like the Arduino library
-/*void pn532_poll(pn532_context_t* context)
+void pn532_poll(pn532_context_t* context)
 {
-    //pn532_rfon(context);
+    switch(context->current_state)
+    {
+    case STATE_INITIAL:
+        {
+            // wait 100ms for the reader to start up
+            if(pn532_state_expired(context, 100))
+            {
+                // gratuitous ack in case the PN532 is waiting for us
+                pn532_send_ack(context);
 
-    pn532_packet_init(context);
-    context->buffer[context->buffer_length++] = 0x4a;
-    context->buffer[context->buffer_length++] = 0x01;
-    context->buffer[context->buffer_length++] = 0x00;
-    pn532_packet_finish(context);
-    pn532_i2c_send(context);
-    pn532_i2c_recv(context, true, 1000);
-    pn532_find_packet_start(context);
+                // MOVE -> WAIT_STARTUP
+                pn532_state_transition(context, STATE_WAIT_STARTUP);
+            }
+        } break;
+    case STATE_WAIT_STARTUP:
+        {
+            // wait a further 100ms for the reader to be ready
+            if(pn532_state_expired(context, 100))
+            {
+                pn532_set_sam_config(context);
+                pn532_state_transition(context, STATE_WAIT_CONFIG_ACK);
+            }
+        } break;
+    case STATE_WAIT_CONFIG_ACK:
+        {
+            if(pn532_state_expired(context, 10))
+            {
+                if(pn532_get_ack(context))
+                {
+                    // MOVE -> IDLE
+                    DEBUG_LOG_LITERAL("Setup Complete");
+                    pn532_state_transition(context, STATE_IDLE);
+                }
+                else
+                {
+                    // HOLD waiting for ACK
+                    pn532_state_hold(context);
+                }
+            }
+        } break;
+    case STATE_IDLE:
+        {
+            // retry 250ms after the last card probe
+            if(pn532_state_expired(context, 250))
+            {
+                pn532_rfon(context);
+                pn532_state_transition(context, STATE_RFON_WAIT_ACK);
+            }
+        } break;
+    case STATE_RFON_WAIT_ACK:
+        {
+            if(pn532_state_expired(context, 10))
+            {
+                if(pn532_get_ack(context))
+                {
+                    // poll for card
+                    pn532_check_for_cards(context);
+                    pn532_state_transition(context, STATE_WAIT_CARDS_ACK);
+                }
+                else
+                {
+                    // HOLD waiting for ACK
+                    pn532_state_hold(context);
+                }
+            }
+        } break;
+    case STATE_WAIT_CARDS_ACK:
+        {
+            if(pn532_state_expired(context, 10))
+            {
+                if(pn532_get_ack(context))
+                {
+                    pn532_state_transition(context, STATE_WAIT_CARDS);
+                }
+                else
+                {
+                    // HOLD waiting for ACK
+                    pn532_state_hold(context);
+                }
+            }
+        } break;
+    case STATE_WAIT_CARDS:
+        {
+            if(pn532_state_expired(context, 10))
+            {
+                if(pn532_i2c_recv(context, true))
+                {
+                    uint8_t cardCount = context->buffer[context->packet_start+6];
 
-    uint8_t cardCount = context->buffer[context->packet_start+6];
+                    DEBUG_LOG_BUFFER("Cards Found", &cardCount, 1);
 
-    DEBUG_LOG_BUFFER("Cards Found", &cardCount, 1);
-}*/
+                    pn532_state_transition(context, STATE_IDLE);
+                }
+            }
+        } break;
+    }
+}

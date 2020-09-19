@@ -37,7 +37,7 @@ bool i2c_start()
 {
     TWCR = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
     // wait twint
-    while (!(TWCR & (1<<TWINT)));
+    while (!(TWCR & (1<<TWINT))) wdt_reset();
     // check twi status
     return ((TWSR & 0xF8) == 0x08) || ((TWSR & 0xF8) == 0x10);
 }
@@ -53,7 +53,7 @@ bool i2c_address(uint8_t address, bool read)
     TWDR = address << 1 | (read ? 1 : 0);
     TWCR = (1<<TWINT) | (1<<TWEN);
     // wait twint
-    while (!(TWCR & (1<<TWINT)));
+    while (!(TWCR & (1<<TWINT))) wdt_reset();
     // check twi status
     return ((TWSR & 0xF8) == 0x18) || ((TWSR & 0xF8) == 0x40);
 }
@@ -123,6 +123,20 @@ int i2c_read(uint8_t address, uint8_t* buffer, uint8_t length)
     }
     
     return i2c_read_raw(buffer, length);
+}
+
+bool i2c_polladdress(uint8_t addr)
+{
+    if(!i2c_start())
+    {
+        return false;
+    }
+
+    bool retval = i2c_address(addr, false);
+
+    i2c_stop();
+
+    return retval;
 }
 
 void i2c_write(uint8_t address, uint8_t* data, uint8_t length)

@@ -13,4 +13,5 @@ SOURCES=src/main.c \
 		src/serial.c \
 		src/log.c \
 		src/commsprotocol.c \
+		src/tickcounter.c \
 		$(TARGET_SOURCES)

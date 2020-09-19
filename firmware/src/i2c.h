@@ -24,6 +24,9 @@ void i2c_write(uint8_t address, uint8_t* data, uint8_t length);
 // used when you need to send a byte then read the response
 int i2c_writeread(uint8_t address, uint8_t data, uint8_t* buffer, uint8_t length);
 
+// check if an address responds
+bool i2c_polladdress(uint8_t addr);
+
 /////////////////////
 // Low level commands
 // PN532 needs some fairly careful handling

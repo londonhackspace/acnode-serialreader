@@ -13,6 +13,7 @@
 #include "log.h"
 #include "target.h"
 #include "commsprotocol.h"
+#include "tickcounter.h"
 
 #ifdef HAS_SI7060
 #include "si7060.h"
@@ -29,6 +30,11 @@ pn532_context_t pn532_ctx;
 
 comms_context_t comms;
 
+void comms_query_reader_version_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    comms_send_reader_version_response(comms, 0, 0, PSTR(LOG_STRINGIFY(BUILD_DATE)), PSTR(LOG_STRINGIFY(GIT_HASH)));
+}
+
 int main()
 {
     // disable the watchdog timer so it doesn't interrupt us until we are ready
@@ -43,8 +49,11 @@ int main()
     comms_init(&comms);
     sei();
     comms_set_handlers(&comms, serial_put, serial_get);
+
+    tickcounter_init();
     
     lights_init();
+    lights_set(255,255,255);
 
     i2c_init();
 
@@ -56,9 +65,7 @@ int main()
 
     pn532_init(&pn532_ctx);
 
-    pn532_get_firmware_version(&pn532_ctx);
-
-    
+    //pn532_get_firmware_version(&pn532_ctx);
 
     // enable the watchdog with a fairly generous 500ms timeout
     wdt_reset();

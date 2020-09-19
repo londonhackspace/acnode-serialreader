@@ -9,6 +9,8 @@
 #ifndef COMMSPROTOCOL_H
 #define COMMSPROTOCOL_H
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,9 +20,16 @@ typedef void(*sendfunc)(const unsigned char*,unsigned int);
 typedef unsigned int(*recvfunc)(unsigned char*,unsigned int);
 
 
-// Depending on which end of the link you're at, you might want to flip these
+// Uncomment this to switch to host mode
+//#define COMMS_HOST_MODE
+
+#ifdef COMMS_HOST_MODE
+#define COMMS_TXBUFFER_SIZE 64
+#define COMMS_RXBUFFER_SIZE 256
+#else
 #define COMMS_TXBUFFER_SIZE 256
 #define COMMS_RXBUFFER_SIZE 64
+#endif
 
 typedef struct
 {
@@ -36,19 +45,28 @@ typedef struct
     // For handling incoming messages
     unsigned char rxbuffer[COMMS_RXBUFFER_SIZE];
     unsigned int buffer_level;
+
+    // counter to handle how many polls we've been waiting for a response
+    unsigned long int ackWaitCounter;
+    unsigned int retryCounter;
 } comms_context_t;
 
 enum loglevels
 {
-	LOG_LEVEL_ERROR = 0,
-	LOG_LEVEL_WARN = 1,
-	LOG_LEVEL_INFO = 2,
-	LOG_LEVEL_DEBUG  = 3,
+    LOG_LEVEL_ERROR = 0,
+    LOG_LEVEL_WARN = 1,
+    LOG_LEVEL_INFO = 2,
+    LOG_LEVEL_DEBUG  = 3,
 };
 
 void comms_init(comms_context_t* comms);
 void comms_set_handlers(comms_context_t* comms, sendfunc send, recvfunc receive);
 void comms_poll(comms_context_t* comms);
+
+void comms_send_unknown_message_reply(comms_context_t* comms, unsigned char messageCode);
+
+// on AVR, buildDate and githash are assumed to be in PROGMEM
+void comms_send_reader_version_response(comms_context_t* comms, int majorVersion, int minorVersion, const char* buildDate, const char* githash);
 
 // On AVR, context is assumed to always be in PROGMEM as used by the logging macros
 void comms_send_log(comms_context_t* comms, int level, const char* context, const char* message, int length);
@@ -58,6 +76,12 @@ void comms_send_logz(comms_context_t* comms, int level, const char* context, con
 void comms_send_log_flash(comms_context_t* comms, int level, const char* context, const char* flashmessage, int length);
 void comms_send_logz_flash(comms_context_t* comms, int level, const char* context, const char* flashmessage);
 #endif
+
+// Implement any of these you care about handling - weak implementations are provided by default
+void comms_query_reader_version_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
+void comms_reader_version_response_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
+void comms_log_message_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
+void comms_unknown_message_reply_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
 
 #ifdef __cplusplus
 }

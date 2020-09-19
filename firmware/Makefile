@@ -63,6 +63,9 @@ CROSS_AS=avr-as
 OBJDUMP=avr-objdump
 OBJCOPY=avr-objcopy
 
+GITHASH=$(shell git rev-parse HEAD)
+BUILDDATE=$(shell date)
+
 # check the target file exists, to prevent weird errors later
 ifeq (,$(wildcard targets/$(TARGET).mk))
 $(error Unknown TARGET or target file not found. Check targets/$(TARGET).mk exists.)
@@ -81,9 +84,9 @@ DEFINES=\
 	-DDEBUG_STRING=$(DEBUG_STRING) \
 	-DDEBUG_LEVEL=$(DEBUG)
 
-CFLAGS=-mmcu=${MCU} $(DEFINES) -g -O2 -I$(CURDIR)/src/include -Wall -Werror \
+CFLAGS=-mmcu=${MCU} $(DEFINES) -ggdb -O2 -I$(CURDIR)/src/include -Wall -Werror \
 		-Wl,--gc-sections -flto -I$(CURDIR)/build $(CFLAGS_TARGET) \
-		-I$(CURDIR)/src/target/$(TARGET)
+		-I$(CURDIR)/src/target/$(TARGET) -DGIT_HASH=$(GITHASH) -DBUILD_DATE="$(BUILDDATE)"
 
 # build the output filename
 OUTPUT_NAME=$(PROJECT)-$(TARGET)
@@ -133,7 +136,7 @@ build/$(OUTPUT_NAME)/%.o : %.c
 
 build/$(OUTPUT_NAME).elf: ${OBJECTS}
 	${CROSS_CC} ${CFLAGS} -Wl,-Map,$(@:.elf=.map) $^ -lm -o $@
-	avr-size --format=avr --mcu=${TARGET} $@ | tee build/$(OUTPUT_NAME)_size.txt
+	avr-size --format=avr --mcu=${MCU} $@ | tee build/$(OUTPUT_NAME)_size.txt
 
 %.hex : %.elf
 	${OBJCOPY} -j .text -j .data -O ihex $< $@

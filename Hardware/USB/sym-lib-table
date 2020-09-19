@@ -1,3 +1,4 @@
 (sym_lib_table
   (lib (name ExtraParts)(type Legacy)(uri /Users/michael/dev/london-hackspace/ACNodeReader/Hardware/ExtraParts.lib)(options "")(descr ""))
+  (lib (name USB-rescue)(type Legacy)(uri ${KIPRJMOD}/USB-rescue.lib)(options "")(descr ""))
 )

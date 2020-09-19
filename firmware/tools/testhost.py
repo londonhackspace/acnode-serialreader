@@ -4,13 +4,12 @@
 import serial
 import os
 
-port = serial.Serial('/dev/ttyACM0', 115200, timeout=0.1)
+port = serial.Serial('/dev/ttyUSB0', 115200, timeout=0)
 
 buff = b""
 
 def calculateChecksum(message):
     s = 0
-    print("Checksumming %d bytes" % (len(message),))
     for i in range(2,len(message)):
         s = s + message[i]
     return s & 0xff
@@ -35,6 +34,21 @@ def handleLogMessage(message):
     print("[%s] %s - %s" % (type2string(level), context, message))
 
 
+def handleVersionMessage(message):
+    major = message[4]
+    minor = message[5]
+    date_length = message[6]
+    hash_length = message[7+date_length]
+    date = message[7:(7+date_length)].decode('utf8')
+    ghash = message[(8+date_length):(8+date_length+hash_length)].decode('utf8')
+    print("Reader version %d.%d (%s) built at %s" % (major, minor, ghash, date))
+
+def sendVersionRequest():
+    buff = bytearray(b"\xff\xdd\x01\x00\x00")
+    buff[4] = calculateChecksum(buff)
+    port.write(buff)
+
+
 def handleMessage():
     global buff
     while len(buff) >= 2:
@@ -51,17 +65,15 @@ def handleMessage():
             messagelength = buff[3]
             if len(buff) < 4+messagelength:
                 # partial message
-                print("Partial message - have %d bytes of %d" % (len(buff), 4+messagelength))
-                print(buff.hex())
                 break
-            print("Got message of type 0x%x" % (messagetype,))
             s = calculateChecksum(buff[0:(messagelength+4)])
             if s == 0:
-                print(buff.hex())
                 # send ACK
                 port.write(b"\xfd\x02")
                 if messagetype == 0x82:
                     handleLogMessage(buff)
+                elif messagetype == 0x81:
+                    handleVersionMessage(buff)
             else:
                 print(buff.hex())
                 print("Invalid checksum 0x%x (last byte 0x%x- sending NAK" % (s, buff[messagelength+3]))
@@ -69,14 +81,24 @@ def handleMessage():
             
             port.flush()
             buff = buff[(4+messagelength):]
-            print("Discarded %d - remaining %d" % (4+messagelength, len(buff)))
         else:
             # remove junk
-            print("Discarded junk 0x%x" % (buff[0],))
+            buffertext = ""
+            for i in range(len(buff)):
+                if i != 0:
+                    buffertext += " "
+                buffertext += "%x" % (buff[i],)
+            print("Discarded junk 0x%x - buffer is: %s" % (buff[0],buffertext))
             buff = buff[1:]
 
+import time
+
+port.flush()
+
+sendVersionRequest()
 
 while True:
     port.flush()
-    buff = buff + port.read(256)
+    buff = buff + port.read(32)
     handleMessage()
+    time.sleep(0.05)

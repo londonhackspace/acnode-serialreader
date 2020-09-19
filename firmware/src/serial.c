@@ -52,11 +52,8 @@ bool serial_data_available()
     return serial_countSerialBufferSize() > 0;
 }
 
-void lights_set(int,int,int);
-
 ISR(USART_RX_vect)
 {
-    lights_set(0,0,255);
     // overflow? discard.
     if(serial_countSerialBufferSize() == SERIAL_BUFFER_SIZE)
     {

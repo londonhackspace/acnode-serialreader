@@ -53,64 +53,62 @@ Wire Wire Line
 $Comp
 L Regulator_Linear:L78L05_SOT89 U1
 U 1 1 5D3D7904
-P 2050 1150
-F 0 "U1" H 2050 1392 50  0000 C CNN
-F 1 "L78L05_SOT89" H 2050 1301 50  0000 C CNN
-F 2 "Package_TO_SOT_SMD:SOT-89-3" H 2050 1350 50  0001 C CIN
-F 3 "http://www.st.com/content/ccc/resource/technical/document/datasheet/15/55/e5/aa/23/5b/43/fd/CD00000446.pdf/files/CD00000446.pdf/jcr:content/translations/en.CD00000446.pdf" H 2050 1100 50  0001 C CNN
-	1    2050 1150
+P 1950 1350
+F 0 "U1" H 1950 1592 50  0000 C CNN
+F 1 "L78L05_SOT89" H 1950 1501 50  0000 C CNN
+F 2 "Package_TO_SOT_SMD:SOT-89-3" H 1950 1550 50  0001 C CIN
+F 3 "http://www.st.com/content/ccc/resource/technical/document/datasheet/15/55/e5/aa/23/5b/43/fd/CD00000446.pdf/files/CD00000446.pdf/jcr:content/translations/en.CD00000446.pdf" H 1950 1300 50  0001 C CNN
+	1    1950 1350
 	1    0    0    -1  
 $EndComp
 $Comp
 L power:GND #PWR0103
 U 1 1 5D3D8510
-P 2050 1800
-F 0 "#PWR0103" H 2050 1550 50  0001 C CNN
-F 1 "GND" H 2055 1627 50  0000 C CNN
-F 2 "" H 2050 1800 50  0001 C CNN
-F 3 "" H 2050 1800 50  0001 C CNN
-	1    2050 1800
+P 1950 2000
+F 0 "#PWR0103" H 1950 1750 50  0001 C CNN
+F 1 "GND" H 1955 1827 50  0000 C CNN
+F 2 "" H 1950 2000 50  0001 C CNN
+F 3 "" H 1950 2000 50  0001 C CNN
+	1    1950 2000
 	1    0    0    -1  
 $EndComp
 $Comp
 L power:+12V #PWR0104
 U 1 1 5D3D8CA0
-P 1300 1050
-F 0 "#PWR0104" H 1300 900 50  0001 C CNN
-F 1 "+12V" H 1315 1223 50  0000 C CNN
-F 2 "" H 1300 1050 50  0001 C CNN
-F 3 "" H 1300 1050 50  0001 C CNN
-	1    1300 1050
+P 1200 1250
+F 0 "#PWR0104" H 1200 1100 50  0001 C CNN
+F 1 "+12V" H 1215 1423 50  0000 C CNN
+F 2 "" H 1200 1250 50  0001 C CNN
+F 3 "" H 1200 1250 50  0001 C CNN
+	1    1200 1250
 	1    0    0    -1  
 $EndComp
 $Comp
 L power:+5V #PWR0105
 U 1 1 5D3D9614
-P 2750 1050
-F 0 "#PWR0105" H 2750 900 50  0001 C CNN
-F 1 "+5V" H 2765 1223 50  0000 C CNN
-F 2 "" H 2750 1050 50  0001 C CNN
-F 3 "" H 2750 1050 50  0001 C CNN
-	1    2750 1050
+P 2650 1250
+F 0 "#PWR0105" H 2650 1100 50  0001 C CNN
+F 1 "+5V" H 2665 1423 50  0000 C CNN
+F 2 "" H 2650 1250 50  0001 C CNN
+F 3 "" H 2650 1250 50  0001 C CNN
+	1    2650 1250
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	1300 1050 1300 1150
+	1200 1250 1200 1350
 Wire Wire Line
-	2750 1150 2750 1050
+	2650 1350 2650 1250
 Wire Wire Line
-	2050 1800 2050 1500
+	1950 2000 1950 1700
 Wire Wire Line
-	2750 1200 2750 1150
-Connection ~ 2750 1150
+	2650 1400 2650 1350
+Connection ~ 2650 1350
+Connection ~ 1950 1700
 Wire Wire Line
-	2750 1500 2050 1500
-Connection ~ 2050 1500
+	1950 1700 1950 1650
 Wire Wire Line
-	2050 1500 2050 1450
-Wire Wire Line
-	1300 1200 1300 1150
-Connection ~ 1300 1150
+	1200 1400 1200 1350
+Connection ~ 1200 1350
 Wire Wire Line
 	4050 4250 4600 4250
 Text Label 4300 4150 0    50   ~ 0
@@ -712,11 +710,11 @@ i2c_SCL
 Text GLabel 6950 2350 0    50   Input ~ 0
 i2c_SDA
 Wire Wire Line
-	1300 1150 1750 1150
+	1200 1350 1650 1350
 Wire Wire Line
-	1300 1500 2050 1500
+	1200 1700 1950 1700
 Wire Wire Line
-	2350 1150 2750 1150
+	2250 1350 2650 1350
 $Comp
 L ACNodeReader-rescue:ATmega88PB-AU-MCU_Microchip_ATmega U2
 U 1 1 5D98CB6F
@@ -811,23 +809,23 @@ Wire Wire Line
 $Comp
 L Device:C C1
 U 1 1 5EE74DE3
-P 1300 1350
-F 0 "C1" H 1415 1396 50  0000 L CNN
-F 1 "10u" H 1415 1305 50  0000 L CNN
-F 2 "Capacitor_SMD:C_0805_2012Metric" H 1338 1200 50  0001 C CNN
-F 3 "~" H 1300 1350 50  0001 C CNN
-	1    1300 1350
+P 1200 1550
+F 0 "C1" H 1315 1596 50  0000 L CNN
+F 1 "10u" H 1315 1505 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric" H 1238 1400 50  0001 C CNN
+F 3 "~" H 1200 1550 50  0001 C CNN
+	1    1200 1550
 	1    0    0    -1  
 $EndComp
 $Comp
 L Device:C C2
 U 1 1 5EE7545C
-P 2750 1350
-F 0 "C2" H 2865 1396 50  0000 L CNN
-F 1 "10u" H 2865 1305 50  0000 L CNN
-F 2 "Capacitor_SMD:C_0805_2012Metric" H 2788 1200 50  0001 C CNN
-F 3 "~" H 2750 1350 50  0001 C CNN
-	1    2750 1350
+P 2650 1550
+F 0 "C2" H 2765 1596 50  0000 L CNN
+F 1 "10u" H 2765 1505 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric" H 2688 1400 50  0001 C CNN
+F 3 "~" H 2650 1550 50  0001 C CNN
+	1    2650 1550
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -1050,21 +1048,21 @@ NoConn ~ 4050 3350
 $Comp
 L Device:D_Zener D1
 U 1 1 5F745A0A
-P 850 1300
-F 0 "D1" V 804 1380 50  0000 L CNN
-F 1 "D_Zener" V 895 1380 50  0000 L CNN
-F 2 "Diode_SMD:D_SOD-323F" H 850 1300 50  0001 C CNN
-F 3 "~" H 850 1300 50  0001 C CNN
-	1    850  1300
+P 750 1500
+F 0 "D1" V 704 1580 50  0000 L CNN
+F 1 "D_Zener" V 795 1580 50  0000 L CNN
+F 2 "Diode_SMD:D_SOD-323F" H 750 1500 50  0001 C CNN
+F 3 "~" H 750 1500 50  0001 C CNN
+	1    750  1500
 	0    1    1    0   
 $EndComp
 Wire Wire Line
-	1300 1150 850  1150
+	1200 1350 750  1350
 Wire Wire Line
-	1300 1500 850  1500
+	1200 1700 750  1700
 Wire Wire Line
-	850  1500 850  1450
-Connection ~ 1300 1500
+	750  1700 750  1650
+Connection ~ 1200 1700
 Wire Wire Line
 	4600 4700 6100 4700
 Wire Wire Line
@@ -1177,4 +1175,10 @@ Text Notes 1700 2450 0    50   ~ 0
 RGB LED output
 NoConn ~ 4050 2450
 NoConn ~ 4050 2650
+Text Notes 650  1000 0    50   ~ 0
+Could also use AP7381-50Y-13 (150mA max current)\nOr AP2205-50YR-13 (200mA)\nMaybe redesign to support MCP1700/2/3 on later version (for 250mA max current)?\n\nThe PN532 probably pulls more than 100mA (and maybe more than 150mA)\n
+Wire Wire Line
+	1950 1700 2650 1700
+Text Notes 600  2050 0    50   ~ 0
+Don't forget these capacitors lose\ncapacitance as the voltage rises!\n\nSuggest 25V rating or more\n
 $EndSCHEMATC
