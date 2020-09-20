@@ -33,8 +33,13 @@ def handleLogMessage(message):
     message = message[(7+contextLength):(7+contextLength+messageLength)].decode('utf8')
     print("[%s] %s - %s" % (type2string(level), context, message))
 
+versioncount = 0
 
 def handleVersionMessage(message):
+    global versioncount
+    versioncount += 1
+    if versioncount > 1:
+        print("We already got a version message!")
     major = message[4]
     minor = message[5]
     date_length = message[6]
@@ -70,6 +75,7 @@ def handleMessage():
             if s == 0:
                 # send ACK
                 port.write(b"\xfd\x02")
+                print("Sending ACK")
                 if messagetype == 0x82:
                     handleLogMessage(buff)
                 elif messagetype == 0x81:

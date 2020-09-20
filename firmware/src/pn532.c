@@ -17,6 +17,9 @@
 // This is the 7-bit address, not the 8-bit address given in the docs
 static const int pn532_address = 0x24;
 
+// if the PN532 doesn't respond for 5 seconds, restart
+static const unsigned long int wait_timeout = 5000;
+
 enum
 {
     STATE_INITIAL = 0,
@@ -34,12 +37,12 @@ static void pn532_state_hold(pn532_context_t* context);
 static bool pn532_state_expired(pn532_context_t* context, unsigned long int timeout);
 static void pn532_packet_init(pn532_context_t* context);
 static bool pn532_i2c_recv(pn532_context_t* context, bool ackable);
-static void pn532_set_sam_config(pn532_context_t* context);
+static bool pn532_set_sam_config(pn532_context_t* context);
 static void pn532_packet_finish(pn532_context_t* context);
-static void pn532_i2c_send(pn532_context_t* context);
+static bool pn532_i2c_send(pn532_context_t* context);
 static bool pn532_get_ack(pn532_context_t* context);
 static void pn532_find_packet_start(pn532_context_t* context);
-static void pn532_rfon(pn532_context_t* context);
+static bool pn532_rfon(pn532_context_t* context);
 
 void pn532_init(pn532_context_t* context)
 {
@@ -48,13 +51,19 @@ void pn532_init(pn532_context_t* context)
 
     context->last_transition = tickcounter_get();
     context->current_state = STATE_INITIAL;
-
+    context->last_different_state_time = tickcounter_get();
 }
 
 static void pn532_state_transition(pn532_context_t* context, int newState)
 {
     DEBUG_LOG_LITERAL("State Transition");
     context->last_transition = tickcounter_get();
+
+    if(context->current_state != newState)
+    {
+        context->last_different_state_time = context->last_transition;
+    }
+
     context->current_state = newState;
 }
 
@@ -100,10 +109,10 @@ static void pn532_packet_finish(pn532_context_t* context)
     context->buffer[context->buffer_length++] = 0x00;
 }
 
-static void pn532_i2c_send(pn532_context_t* context)
+static bool pn532_i2c_send(pn532_context_t* context)
 {
     DEBUG_LOG_BUFFER("I2C Sending", context->buffer, context->buffer_length);
-    i2c_write(pn532_address, context->buffer, context->buffer_length);
+    return i2c_write(pn532_address, context->buffer, context->buffer_length);
 }
 
 static bool pn532_i2c_recv(pn532_context_t* context, bool ackable)
@@ -126,7 +135,7 @@ static bool pn532_i2c_recv(pn532_context_t* context, bool ackable)
     i2c_recvdata(&ready, false);
     if(!(ready & 1))
     {
-        DEBUG_LOG_LITERAL("not Ready");
+        //DEBUG_LOG_LITERAL("not Ready");
         i2c_stop();
         return false;
     }
@@ -156,7 +165,7 @@ static void pn532_send_ack(pn532_context_t* context)
     i2c_write(pn532_address, context->buffer, 5);
 }
 
-static void pn532_set_sam_config(pn532_context_t* context)
+static bool pn532_set_sam_config(pn532_context_t* context)
 {
     // The docs say this mode is the default, but it seems like it might not be
     // since without this, it doesn't ever read a card!
@@ -166,7 +175,7 @@ static void pn532_set_sam_config(pn532_context_t* context)
     context->buffer[context->buffer_length++] = 0x00; // no timeout (SAM - not used)
     context->buffer[context->buffer_length++] = 0x00; // no IRQ pin
     pn532_packet_finish(context);
-    pn532_i2c_send(context);   
+    return pn532_i2c_send(context);   
 }
 
 static bool pn532_get_ack(pn532_context_t* context)
@@ -199,17 +208,17 @@ static void pn532_find_packet_start(pn532_context_t* context)
     }
 }
 
-static void pn532_rfon(pn532_context_t* context)
+static bool pn532_rfon(pn532_context_t* context)
 {
     pn532_packet_init(context);
     context->buffer[context->buffer_length++] = 0x32;
     context->buffer[context->buffer_length++] = 0x01;
     context->buffer[context->buffer_length++] = 0x03;
     pn532_packet_finish(context);
-    pn532_i2c_send(context);
+    return pn532_i2c_send(context);
 }
 
-static void pn532_check_for_cards(pn532_context_t* context)
+static bool  pn532_check_for_cards(pn532_context_t* context)
 {
     pn532_packet_init(context);
     context->buffer[context->buffer_length++] = 0x60; // auto poll
@@ -219,7 +228,7 @@ static void pn532_check_for_cards(pn532_context_t* context)
     context->buffer[context->buffer_length++] = 0x01; // Passive 106 kbps ISO/IEC14443-4B
     context->buffer[context->buffer_length++] = 0x02; // FeliCa 212 kbps card
     pn532_packet_finish(context);
-    pn532_i2c_send(context);
+    return pn532_i2c_send(context);
 }
 
 void pn532_poll(pn532_context_t* context)
@@ -228,9 +237,16 @@ void pn532_poll(pn532_context_t* context)
     {
     case STATE_INITIAL:
         {
-            // wait 100ms for the reader to start up
-            if(pn532_state_expired(context, 100))
+            // wait 500ms for the reader to start up
+            if(pn532_state_expired(context, 500))
             {
+                if(!i2c_polladdress(pn532_address))
+                {
+                    // wait for device to become present
+                    pn532_state_hold(context);
+                    DEBUG_LOG_LITERAL("PN532 not detected - waiting");
+                    break;
+                }
                 // gratuitous ack in case the PN532 is waiting for us
                 pn532_send_ack(context);
 
@@ -243,7 +259,13 @@ void pn532_poll(pn532_context_t* context)
             // wait a further 100ms for the reader to be ready
             if(pn532_state_expired(context, 100))
             {
-                pn532_set_sam_config(context);
+                if(!pn532_set_sam_config(context))
+                {
+                    ERROR_LOG_LITERAL("Error setting PN532 config");
+                    pn532_state_transition(context, STATE_INITIAL);
+                    break;
+                }
+
                 pn532_state_transition(context, STATE_WAIT_CONFIG_ACK);
             }
         } break;
@@ -261,6 +283,13 @@ void pn532_poll(pn532_context_t* context)
                 {
                     // HOLD waiting for ACK
                     pn532_state_hold(context);
+
+                    if((tickcounter_get() - context->last_different_state_time) > wait_timeout)
+                    {
+                        // We've waited over 5 seconds - something's wrong
+                        pn532_state_transition(context, STATE_INITIAL);
+                        ERROR_LOG_LITERAL("Timeout waiting for config ack");
+                    }
                 }
             }
         } break;
@@ -269,7 +298,12 @@ void pn532_poll(pn532_context_t* context)
             // retry 250ms after the last card probe
             if(pn532_state_expired(context, 250))
             {
-                pn532_rfon(context);
+                if(!pn532_rfon(context))
+                {
+                    ERROR_LOG_LITERAL("Error starting RF");
+                    pn532_state_transition(context, STATE_INITIAL);
+                    break;
+                }
                 pn532_state_transition(context, STATE_RFON_WAIT_ACK);
             }
         } break;
@@ -280,13 +314,25 @@ void pn532_poll(pn532_context_t* context)
                 if(pn532_get_ack(context))
                 {
                     // poll for card
-                    pn532_check_for_cards(context);
+                    if(!pn532_check_for_cards(context))
+                    {
+                        ERROR_LOG_LITERAL("Error checking for cards");
+                        pn532_state_transition(context, STATE_INITIAL);
+                        break;
+                    }
                     pn532_state_transition(context, STATE_WAIT_CARDS_ACK);
                 }
                 else
                 {
                     // HOLD waiting for ACK
                     pn532_state_hold(context);
+
+                    if((tickcounter_get() - context->last_different_state_time) > wait_timeout)
+                    {
+                        // We've waited over 10 seconds - something's wrong
+                        pn532_state_transition(context, STATE_INITIAL);
+                        ERROR_LOG_LITERAL("Timeout waiting for rfon ack");
+                    }
                 }
             }
         } break;
@@ -302,6 +348,13 @@ void pn532_poll(pn532_context_t* context)
                 {
                     // HOLD waiting for ACK
                     pn532_state_hold(context);
+
+                    if((tickcounter_get() - context->last_different_state_time) > 10000)
+                    {
+                        // We've waited over 5 seconds - something's wrong
+                        pn532_state_transition(context, STATE_INITIAL);
+                        ERROR_LOG_LITERAL("Timeout waiting for cards ack");
+                    }
                 }
             }
         } break;
@@ -315,7 +368,24 @@ void pn532_poll(pn532_context_t* context)
 
                     DEBUG_LOG_BUFFER("Cards Found", &cardCount, 1);
 
+                    if(cardCount > 0)
+                    {
+                        INFO_LOG_LITERAL("Found a card");
+                    }
+
                     pn532_state_transition(context, STATE_IDLE);
+                }
+                else
+                {
+                    // hold waiting for data
+                    pn532_state_hold(context);
+
+                    if((tickcounter_get() - context->last_different_state_time) > wait_timeout)
+                    {
+                        // We've waited over 5 seconds - something's wrong
+                        pn532_state_transition(context, STATE_INITIAL);
+                        ERROR_LOG_LITERAL("Timeout waiting for cards");
+                    }
                 }
             }
         } break;

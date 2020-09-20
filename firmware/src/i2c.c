@@ -139,9 +139,9 @@ bool i2c_polladdress(uint8_t addr)
     return retval;
 }
 
-void i2c_write(uint8_t address, uint8_t* data, uint8_t length)
+bool i2c_write(uint8_t address, uint8_t* data, uint8_t length)
 {
-    if(!i2c_start()) { return; }
+    if(!i2c_start()) { return false; }
     //send address + W
     int tries = 0;
     while(!i2c_address(address, false) && tries++ <5)
@@ -154,7 +154,7 @@ void i2c_write(uint8_t address, uint8_t* data, uint8_t length)
     if(tries >= 5)
     {
         ERROR_LOG_LITERAL("Giving up");
-        return;
+        return false;
     }
     // send data
     while(length)
@@ -163,13 +163,15 @@ void i2c_write(uint8_t address, uint8_t* data, uint8_t length)
         if(!i2c_senddata(data[0]))
         {
             ERROR_LOG_LITERAL("Failed to send data");
-            i2c_stop(); return;
+            i2c_stop(); return false;
         }
         --length;
         ++data;
     }
     // send stop
     i2c_stop();
+
+    return true;
 }
 
 int i2c_writeread(uint8_t address, uint8_t data, uint8_t* buffer, uint8_t length)

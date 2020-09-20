@@ -23,6 +23,8 @@ typedef struct
     // state
     int current_state;
     unsigned long int last_transition;
+
+    unsigned long int last_different_state_time;
 } pn532_context_t;
 
 // Pass in an uninitialised context to set it up

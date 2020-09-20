@@ -342,6 +342,43 @@ static bool test_send_reader_version_response()
     TEST_PASS();
 }
 
+static bool test_log_send_repeated()
+{
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+
+    for(int i = 0; i < 1000; ++i)
+    {
+        comms_send_log(&victim, LOG_LEVEL_INFO, "context", "message", 7);
+
+        std::vector<unsigned char> refmessage = {
+            0xff, 0xdd,
+            0x82, 0x12,
+            0x02,
+            0x07, 'c', 'o', 'n', 't', 'e', 'x', 't',
+            0x07, 'm', 'e', 's', 's', 'a', 'g', 'e',
+            0x72
+        };
+
+        TEST_ASSERT(txqueue.size() == 1);
+        TEST_ASSERT(txqueue.front() == refmessage);
+        txqueue.pop();
+
+        // trigger an ACK
+        rxqueue.push({ 0xfd, 0x02 });
+        comms_poll(&victim);
+
+        // Check the ACK has been collected
+        TEST_ASSERT(rxqueue.empty());
+
+        // check the comms handler is idle
+        TEST_ASSERT(victim.state == 0);
+    }
+
+    TEST_PASS();
+}
+
 int main(int argc, char** argv)
 {
     int retval = 0;
@@ -361,6 +398,8 @@ int main(int argc, char** argv)
 
     ADD_TEST(test_sample_log_message);
     ADD_TEST(test_send_reader_version_response);
+
+    ADD_TEST(test_log_send_repeated);
 
     return retval;
 }

@@ -131,7 +131,7 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
     }
 }
 
-void lights_set(int,int,int);
+//void lights_set(int,int,int);
 
 void comms_poll(comms_context_t* comms)
 {
