@@ -129,7 +129,7 @@ char serial_getchar()
     // if we were in danger of filling up, but now have space, send XON
     if(serial_countSerialBufferSize() < SERIAL_BUFFER_HIGH_MARK && bufferfull)
     {
-        //send xoff
+        //send xon
         serial_putchar(0x11);
         bufferfull = false;
     }
