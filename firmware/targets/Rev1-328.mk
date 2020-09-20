@@ -15,7 +15,7 @@ AVRDUDE_TARGET=m328pb
 AVRDUDE_PROGRAMMER=usbasp
 # slow it down for the first program, at least
 #AVRDUDE_EXTRA_OPTS=-B1000 -U lfuse:w:0xce:m -U hfuse:w:0xd9:m -U efuse:w:0xf3:m -C /data/projects/z80-board/z80-board-tools/avr-toolchain/outdir/etc/avrdude.conf
-AVRDUDE_EXTRA_OPTS=-U lfuse:w:0xce:m -U hfuse:w:0xd9:m -U efuse:w:0xf3:m -C /data/projects/z80-board/z80-board-tools/avr-toolchain/outdir/etc/avrdude.conf
+AVRDUDE_EXTRA_OPTS=-U lfuse:w:0xce:m -U hfuse:w:0xd9:m -U efuse:w:0xf3:m
 #AVRDUDE_EXTRA_OPTS=-U lfuse:w:0xce:m -U hfuse:w:0xdf:m -U efuse:w:0xf9:m
 
 # The clock frequency, in Hz of the crystal
@@ -25,7 +25,7 @@ FREQUENCY=16000000
 CFLAGS_TARGET=
 
 # target-specific sources
-TARGET_SOURCES= #src/si7060.c
+TARGET_SOURCES= src/lm75.c
 
 fuses:
 	avrdude -p ${AVRDUDE_TARGET} -c $(AVRDUDE_PROGRAMMER) $(AVRDUDE_EXTRA_OPTS) -B1000

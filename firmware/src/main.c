@@ -19,6 +19,10 @@
 #include "si7060.h"
 #endif
 
+#ifdef HAS_LM75
+#include "lm75.h"
+#endif
+
 #include <util/delay.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -53,7 +57,7 @@ int main()
     tickcounter_init();
     
     lights_init();
-    lights_set(255,255,255);
+    lights_set(128,0, 128);
 
     i2c_init();
 
@@ -65,17 +69,62 @@ int main()
 
     pn532_init(&pn532_ctx);
 
+    #ifdef HAS_LM75
+    unsigned char temperature = lm75_read_temperature();
+    DEBUG_LOG_BUFFER("Temperature: ", &temperature, 1);
+    #endif
+
     //pn532_get_firmware_version(&pn532_ctx);
 
     // enable the watchdog with a fairly generous 500ms timeout
     wdt_reset();
     wdt_enable(WDTO_500MS);
 
+    int val = 0;
+    int chan = 0;
+    unsigned long int lastupdate = tickcounter_get();
+
     while(1)
     {
         wdt_reset();
         pn532_poll(&pn532_ctx);
         comms_poll(&comms);
+
+        if((tickcounter_get() - lastupdate) >= 12)
+        {
+            lastupdate = tickcounter_get();
+            if(val == 255)
+            {
+                val = 0;
+                ++ chan;
+                if(chan > 2)
+                {
+                    chan = 0;
+                }
+            }
+            else
+            {
+                ++val;
+            }
+
+            unsigned int red = 0;
+            unsigned int blue = 0;
+            unsigned int green = 0;
+
+            if(chan == 0)
+            {
+                red = val;
+            }
+            else if(chan == 1)
+            {
+                green = val;
+            }
+            else
+            {
+                blue = val;
+            }
+            lights_set(red,green,blue);
+        }
     }
 
     return 0;

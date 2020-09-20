@@ -1,22 +1,21 @@
 /******************************************************************************
-* ACNodeReader Firmware - Rev1 (w/328pb) Features                             *
+* ACNodeReader Firmware - LM75 Interface                                      *
 *                                                                             *
 * (c) 2020 London Hackspace                                                   *
 * Released under a 3-clause BSD license. See included LICENSE file.           *
 *                                                                             *
 ******************************************************************************/
 
-#ifndef BOARD_FEATURES_H
-#define BOARD_FEATURES_H
+#include "lm75.h"
+#include "i2c.h"
 
-#ifndef TARGET_SPECIFIC_H
-#error Please include target.h instead
-#endif
+// Address, assuming all address lines tied to ground
+const static uint8_t lm75_address = 0x48;
 
-// SI7060 not available
-#define HAS_DISPLAY 1 // may or may not be fitted
-#define HAS_PWM_LEDS 1
-#define LEDS_COMMON_ANODE 1
-#define HAS_LM75 1
+int lm75_read_temperature()
+{
+	uint8_t data[2];
+	i2c_writeread(lm75_address, 0x00, data, 2);
 
-#endif
+	return data[0];
+}
