@@ -15,3 +15,9 @@ SOURCES=src/main.c \
 		src/commsprotocol.c \
 		src/tickcounter.c \
 		$(TARGET_SOURCES)
+
+BOOTLOADER_SOURCES=src/bootloader.c \
+					src/serial.c \
+					src/commsprotocol.c \
+					src/tickcounter.c \
+					src/lights.c

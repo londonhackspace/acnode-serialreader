@@ -82,14 +82,19 @@ include targets/$(TARGET).mk
 DEFINES=\
 	-DF_CPU=${FREQUENCY}UL \
 	-DDEBUG_STRING=$(DEBUG_STRING) \
-	-DDEBUG_LEVEL=$(DEBUG)
+	-DDEBUG_LEVEL=$(DEBUG) \
+	-DGIT_HASH=$(GITHASH) \
+	-DBUILD_DATE="$(BUILDDATE)"
 
 CFLAGS=-mmcu=${MCU} $(DEFINES) -ggdb -O2 -I$(CURDIR)/src/include -Wall -Werror \
 		-Wl,--gc-sections -flto -I$(CURDIR)/build $(CFLAGS_TARGET) \
-		-I$(CURDIR)/src/target/$(TARGET) -DGIT_HASH=$(GITHASH) -DBUILD_DATE="$(BUILDDATE)"
+		-I$(CURDIR)/src/target/$(TARGET)
+
+BOOTLOADER_CFLAGS=$(CFLAGS) -Wl,--section-start=.text=$(BOOTSTART)
 
 # build the output filename
 OUTPUT_NAME=$(PROJECT)-$(TARGET)
+BOOTLOADER_NAME=$(PROJECT)-bootloader-$(TARGET)
 
 ifneq (,$(DEBUG_STRING))
 OUTPUT_NAME:=$(OUTPUT_NAME)-$(DEBUG_STRING)
@@ -126,9 +131,16 @@ OBJECTS_C = $(SOURCES:%=build/$(OUTPUT_NAME)/%)
 OBJECTS = $(OBJECTS_C:.c=.o)
 DEP = $(OBJECTS:%.o=%.d)
 
+BL_OBJECTS_C = $(BOOTLOADER_SOURCES:%=build/$(BOOTLOADER_NAME)/%)
+BLOBJECTS = $(BL_OBJECTS_C:.c=.o)
+BLDEP = $(OBJECTS:%.o=%.d)
+
 full: build/$(OUTPUT_NAME).hex
 
+bootloader: build/$(BOOTLOADER_NAME).hex
+
 -include $(DEP)
+-include $(BLDEP)
 
 build/$(OUTPUT_NAME)/%.o : %.c
 	mkdir -p `dirname $@`
@@ -138,19 +150,31 @@ build/$(OUTPUT_NAME).elf: ${OBJECTS}
 	${CROSS_CC} ${CFLAGS} -Wl,-Map,$(@:.elf=.map) $^ -lm -o $@
 	avr-size --format=avr --mcu=${MCU} $@ | tee build/$(OUTPUT_NAME)_size.txt
 
+build/$(BOOTLOADER_NAME)/%.o : %.c
+	mkdir -p `dirname $@`
+	${CROSS_CC} -c ${BOOTLOADER_CFLAGS} -MMD $< -o $@
+
+build/$(BOOTLOADER_NAME).elf: ${BLOBJECTS}
+	${CROSS_CC} ${BOOTLOADER_CFLAGS} -Wl,-Map,$(@:.elf=.map) $^ -lm -o $@
+	avr-size --format=avr --mcu=${MCU} $@ | tee build/$(BOOTLOADER_NAME)_size.txt
+
 %.hex : %.elf
 	${OBJCOPY} -j .text -j .data -O ihex $< $@
 	${OBJCOPY} -j .eeprom -O ihex $< ${@:%.hex=%-eeprom.hex}
 
 clean:
-	rm -f $(OBJECTS) $(DEP)
-	rm -f build/$(OUTPUT_NAME).elf
-	rm -f build/$(OUTPUT_NAME).hex
-	rm -f build/$(OUTPUT_NAME)-eeprom.hex
-	rm -f build/$(OUTPUT_NAME)_size.txt
-	rm -f build/$(OUTPUT_NAME).map
+	rm -f $(OBJECTS) $(DEP) $(BLOBJECTS) $(BLDEP)
+	rm -f build/$(OUTPUT_NAME).elf build/$(BOOTLOADER_NAME).elf
+	rm -f build/$(OUTPUT_NAME).hex  build/$(BOOTLOADER_NAME).hex
+	rm -f build/$(OUTPUT_NAME)-eeprom.hex  build/$(BOOTLOADER_NAME)-eeprom.hex
+	rm -f build/$(OUTPUT_NAME)_size.txt  build/$(BOOTLOADER_NAME)_size.txt
+	rm -f build/$(OUTPUT_NAME).map  build/$(BOOTLOADER_NAME).map
 	# the directory should now be empty, so no need for -f
 	if [ -d build ]; then rm -r build; fi
 
-flash : build/$(OUTPUT_NAME).hex
+flash : build/$(OUTPUT_NAME).hex build/$(BOOTLOADER_NAME).hex
+	avrdude -p ${AVRDUDE_TARGET} -c $(AVRDUDE_PROGRAMMER) -U flash:w:build/$(BOOTLOADER_NAME).hex $(AVRDUDE_EXTRA_OPTS)
+	avrdude -p ${AVRDUDE_TARGET} -c $(AVRDUDE_PROGRAMMER) -U flash:w:build/$(OUTPUT_NAME).hex $(AVRDUDE_EXTRA_OPTS) -D
+
+bootloader_flash : build/$(BOOTLOADER_NAME).hex
 	avrdude -p ${AVRDUDE_TARGET} -c $(AVRDUDE_PROGRAMMER) -U flash:w:$< $(AVRDUDE_EXTRA_OPTS)

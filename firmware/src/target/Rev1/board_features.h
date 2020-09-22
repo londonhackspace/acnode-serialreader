@@ -14,7 +14,7 @@
 #endif
 
 // SI7060 not available
-#define HAS_DISPLAY 1 // may or may not be fitted
+// Display not available (not enough RAM!)
 #define HAS_PWM_LEDS 1
 #define LEDS_COMMON_ANODE 1
 #define HAS_LM75 1
