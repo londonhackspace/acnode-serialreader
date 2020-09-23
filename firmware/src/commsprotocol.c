@@ -172,6 +172,12 @@ void comms_poll(comms_context_t* comms)
     unsigned int processed_to = 0;
     for(unsigned int i = 0; i < comms->buffer_level-1; ++i)
     {
+        // Not a valid message start, Ack or Nak -> skip it
+        if(comms->rxbuffer[i] != 0xff && comms->rxbuffer[i] != 0xfd)
+        {
+            processed_to = i;
+            continue;
+        }
         if(comms->state == STATE_WAIT_ACK)
         {
             if(comms->rxbuffer[i] == 0xfd && comms->rxbuffer[i+1] == 0x02)

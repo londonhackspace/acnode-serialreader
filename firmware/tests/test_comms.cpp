@@ -379,6 +379,39 @@ static bool test_log_send_repeated()
     TEST_PASS();
 }
 
+// regression test for bug found
+static bool test_send_junk_before_ack()
+{
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+
+    comms_send_log(&victim, LOG_LEVEL_INFO, "context", "message", 7);
+    // we don't actually care much about the message in this test
+    txqueue.pop();
+
+    std::vector<unsigned char> manyZeros(48, 0x00);
+    std::vector<unsigned char> paddedAck(60, 0x00);
+
+    // append a buffer of junk
+    rxqueue.push(manyZeros);
+
+    paddedAck[58] = 0xfd;
+    paddedAck[59] = 0x02;
+
+    rxqueue.push(paddedAck);
+    comms_poll(&victim);
+    comms_poll(&victim);
+
+    // Check the ACK has been collected
+    TEST_ASSERT(rxqueue.empty());
+
+    // check the comms handler is idle
+    TEST_ASSERT(victim.state == 0);
+
+    TEST_PASS();
+}
+
 int main(int argc, char** argv)
 {
     int retval = 0;
@@ -400,6 +433,8 @@ int main(int argc, char** argv)
     ADD_TEST(test_send_reader_version_response);
 
     ADD_TEST(test_log_send_repeated);
+
+    ADD_TEST(test_send_junk_before_ack);
 
     return retval;
 }

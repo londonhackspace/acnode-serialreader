@@ -16,6 +16,12 @@
 
 #include <string.h>
 
+static unsigned int min(unsigned int a, unsigned int b)
+{
+    if(a < b) return a;
+    return b;
+}
+
 #ifndef F_CPU
 #error F_CPU must be defined for this to work
 #endif
@@ -150,18 +156,36 @@ unsigned int serial_get(unsigned char* buffer, unsigned int size)
     cli();
     unsigned int received = 0;
 
-    if(bufferpointer < readbufferpointer)
+    unsigned int available = serial_countSerialBufferSize();
+
+    if(size > available)
     {
-        memcpy(buffer, serialBuffer+readbufferpointer,SERIAL_BUFFER_SIZE-readbufferpointer);
-        readbufferpointer = 0;
-        received = SERIAL_BUFFER_SIZE-readbufferpointer;
+        size = available;
     }
 
-    if(readbufferpointer < bufferpointer)
+    if(bufferpointer < readbufferpointer)
     {
-        memcpy(buffer+received, serialBuffer+readbufferpointer, bufferpointer-readbufferpointer);
-        received += bufferpointer-readbufferpointer;
-        readbufferpointer = bufferpointer;
+        unsigned int torx = min(size,SERIAL_BUFFER_SIZE-readbufferpointer);
+        memcpy(buffer, serialBuffer+readbufferpointer,torx);
+        if(torx == SERIAL_BUFFER_SIZE-readbufferpointer)
+        {
+            readbufferpointer = 0;
+            received = SERIAL_BUFFER_SIZE-readbufferpointer;
+        }
+        else
+        {
+            readbufferpointer+= torx;
+            received = torx;
+        }
+        size -= torx;
+    }
+
+    if(readbufferpointer < bufferpointer && size > 0)
+    {
+        unsigned int torx = min(size, bufferpointer-readbufferpointer);
+        memcpy(buffer+received, serialBuffer+readbufferpointer, torx);
+        received += torx;
+        readbufferpointer += torx;
     }
 
     SREG = stored_sreg;
