@@ -7,8 +7,10 @@ make
 ```
 (see? that was easy...)
 
-There are currently 1 target(s) supported: 
-* Arduino
+There are currently 3 target(s) supported: 
+* DebugBoard09 - Debug board (first hardware revision)
+* Rev1 - V1.0 hardware (first in final form factor)
+* Rev1-328 - V1.0 hardware but with ATmega328PB fitted
 
 There are three levels of debugability available:
 * 0 - off
@@ -24,14 +26,10 @@ more high level config based, and save you having to dig into it just to add a f
 
 Flashing
 ----
+The first time, you probably want to set the fuses first. This is because the factory default chip speed is too slow for the default avrdude upload speed, so we need to slow it down and set the fuses to the external clock.
 
-**Arduino:**
-
-Set ARDUINO_PORT to your serial port of the arduino, e.g:
-`make flash ARDUINO_PORT=/dev/ttyUSB0`
-or 
-`make flash ARDUINO_PORT=/dev/ttyUSB0 DEBUG=2`
-
-**DebugBoard09**
 use a USBASP programmer, for example:
-`make flash TARGET=DebugBoard09 DEBUG=2`
+`make fuses TARGET=Rev1`
+
+use a USBASP programmer, for example:
+`make flash TARGET=Rev1 DEBUG=2`
