@@ -11,13 +11,15 @@ There are currently 3 target(s) supported:
 * DebugBoard09 - Debug board (first hardware revision)
 * Rev1 - V1.0 hardware (first in final form factor)
 * Rev1-328 - V1.0 hardware but with ATmega328PB fitted
+* Rev1.1 - V1.1 hardware (3.3V for Launchpad compatibility)
+* Rev1.1-328 - V1.1 hardware but with ATmega328PB fitted
 
 There are three levels of debugability available:
 * 0 - off
 * 1 - logging
 * 2 - debug build
 
-Use, for example: `make TARGET=Arduino DEBUG=1`
+Use, for example: `make TARGET=Rev1-328 DEBUG=1`
 
 `make clean` does exactly what you'd imagine
 
