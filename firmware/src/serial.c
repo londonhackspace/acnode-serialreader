@@ -62,9 +62,6 @@ ISR(USART_RX_vect)
     // overflow? discard.
     if(serial_countSerialBufferSize() == SERIAL_BUFFER_SIZE)
     {
-        static const char overflow[] PROGMEM =
-            "Serial buffer overflow!!!!!!\n";
-        serial_put_P((unsigned const char*)overflow, sizeof(overflow));
         return;
     }
 

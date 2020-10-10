@@ -11,12 +11,21 @@
 #include "serial.h"
 #include "tickcounter.h"
 #include "lights.h"
+#include "log.h"
 
 #include <avr/interrupt.h>
 #include <avr/wdt.h>
 #include <util/delay.h>
+#include <avr/pgmspace.h>
 
 comms_context_t comms;
+
+void comms_reset_reader_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    wdt_enable(WDTO_15MS);
+    // watchdog timer will reboot us
+    while(1);
+}
 
 int main()
 {

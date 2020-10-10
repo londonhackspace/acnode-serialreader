@@ -10,6 +10,7 @@
 #include "tickcounter.h"
 
 #include <string.h>
+#include <stdbool.h>
 
 #ifdef __AVR__
 #include <avr/pgmspace.h>
@@ -23,7 +24,10 @@ static unsigned char calculate_checksum(const unsigned char* data);
 // Weak implementations of the message processors
 void comms_default_message_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
 {
+    // This saves quite a bit of space in the bootloader!
+#ifndef BUILD_BOOTLOADER
     comms_send_unknown_message_reply(comms, code);
+#endif
 }
 
 #define DEFAULT_MESSAGE_HANDLER(M) void M (comms_context_t*, unsigned char, unsigned char*, size_t) __attribute__ ((weak, alias ("comms_default_message_handler")))
@@ -128,12 +132,12 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
         {
             comms_reset_reader_handler(comms, code, payload, payloadLength);
         } break;
+// If we're building the bootloader, skip some options to save a bit of code space
+#ifndef BUILD_BOOTLOADER
         case MSG_QUERY_READER_VERSION:
         {
             comms_query_reader_version_handler(comms, code, payload, payloadLength);
         } break;
-// If we're building the bootloader, skip some options to save a bit of code space
-#ifndef BUILD_BOOTLOADER
         case MSG_QUERY_TEMPERATURE:
         {
             comms_query_temperature_handler(comms, code, payload, payloadLength);

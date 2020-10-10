@@ -66,7 +66,7 @@ CROSS_AS=avr-as
 OBJDUMP=avr-objdump
 OBJCOPY=avr-objcopy
 
-GITHASH=$(shell git rev-parse HEAD)
+GITHASH=$(shell git rev-parse --short HEAD)
 BUILDDATE=$(shell date)
 
 # check the target file exists, to prevent weird errors later
