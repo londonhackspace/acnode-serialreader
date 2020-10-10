@@ -21,7 +21,7 @@
 
 # Set the default in case no one specifies TARGET
 ifeq ($(TARGET),)
-TARGET=Arduino
+TARGET=Rev1
 endif
 
 # default to no debug
@@ -175,6 +175,9 @@ clean:
 flash : build/$(OUTPUT_NAME).hex build/$(BOOTLOADER_NAME).hex
 	avrdude -p ${AVRDUDE_TARGET} -c $(AVRDUDE_PROGRAMMER) -U flash:w:build/$(BOOTLOADER_NAME).hex $(AVRDUDE_EXTRA_OPTS)
 	avrdude -p ${AVRDUDE_TARGET} -c $(AVRDUDE_PROGRAMMER) -U flash:w:build/$(OUTPUT_NAME).hex $(AVRDUDE_EXTRA_OPTS) -D
+
+nobootflash : build/$(OUTPUT_NAME).hex build/$(BOOTLOADER_NAME).hex
+	avrdude -p ${AVRDUDE_TARGET} -c $(AVRDUDE_PROGRAMMER) -U flash:w:build/$(OUTPUT_NAME).hex $(AVRDUDE_EXTRA_OPTS)
 
 bootloader_flash : build/$(BOOTLOADER_NAME).hex
 	avrdude -p ${AVRDUDE_TARGET} -c $(AVRDUDE_PROGRAMMER) -U flash:w:$< $(AVRDUDE_EXTRA_OPTS)

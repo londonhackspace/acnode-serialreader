@@ -11,11 +11,11 @@ MCU=atmega88pa
 
 # The programming target
 AVRDUDE_TARGET=m88p
-#AVRDUDE_PROGRAMMER=atmelice_isp
-AVRDUDE_PROGRAMMER=usbasp
+AVRDUDE_PROGRAMMER=atmelice_isp
+#AVRDUDE_PROGRAMMER=usbasp
 # slow it down for the first program, at least
 #AVRDUDE_EXTRA_OPTS=-B1000 -U lfuse:w:0xce:m -U hfuse:w:0xdf:m -U efuse:w:0xf9:m
-AVRDUDE_EXTRA_OPTS=-U lfuse:w:0xce:m -U hfuse:w:0xdf:m -U efuse:w:0xf8:m
+#AVRDUDE_EXTRA_OPTS=-U lfuse:w:0xce:m -U hfuse:w:0xdf:m -U efuse:w:0xf9:m
 
 # The clock frequency, in Hz of the crystal
 FREQUENCY=16000000

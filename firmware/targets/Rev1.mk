@@ -6,7 +6,7 @@
 #                                                                             #
 ###############################################################################
 
-# The MCU target as used by GCC - it's actually a 328pb but this keeps better software compatibility
+# The MCU target as used by GCC
 MCU=atmega88pb
 
 # The programming target - this needs a trunk version of avrdude (or the avrdude.conf from it anyway)
