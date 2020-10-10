@@ -112,6 +112,12 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
 
     comms->send(scratch, 2);
 
+    // If we just sent a NAK, there's no point continuing
+    if(scratch[1] == 0x03)
+    {
+        return;
+    }
+
     unsigned char code = comms->rxbuffer[start+2];
     unsigned char* payload = comms->rxbuffer+start+4;
     size_t payloadLength = length-5;
@@ -128,6 +134,21 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
         } break;
 // If we're building the bootloader, skip some options to save a bit of code space
 #ifndef BUILD_BOOTLOADER
+        case MSG_QUERY_TEMPERATURE:
+        {
+            comms_query_temperature_handler(comms, code, payload, payloadLength);
+        } break;      
+// Similarly, if we're not building the host side, skip messages that are sent that way  
+#ifdef COMMS_HOST_MODE
+        case MSG_UNKNOWN_MESSAGE_REPLY_R2H:
+        {
+
+            comms_unknown_message_reply_handler(comms, code, payload, payloadLength);
+        } break;
+        case MSG_TEMPERATURE_RESPONSE:
+        {
+            comms_temperature_response_handler(comms, code, payload, payloadLength);
+        } break;
         case MSG_READER_VERSION_RESPONSE:
         {
             comms_reader_version_response_handler(comms, code, payload, payloadLength);
@@ -136,23 +157,7 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
         {
             comms_log_message_handler(comms, code, payload, payloadLength);
         } break;
-        case MSG_QUERY_TEMPERATURE:
-        {
-            comms_query_temperature_handler(comms, code, payload, payloadLength);
-        } break;
-        case MSG_TEMPERATURE_RESPONSE:
-        {
-            comms_temperature_response_handler(comms, code, payload, payloadLength);
-        } break;
-        case MSG_UNKNOWN_MESSAGE_REPLY_R2H:
-        {
-#ifdef COMMS_HOST_MODE
-            comms_unknown_message_reply_handler(comms, code, payload, payloadLength);
-#else
-            // this is never valid in this direction
-            comms_default_message_handler(comms, code, payload, payloadLength);
-#endif
-        } break;
+#endif // COMMS_HOST_MODE
         case MSG_UNKNOWN_MESSAGE_REPLY_H2R:
         {
 #ifdef COMMS_HOST_MODE
