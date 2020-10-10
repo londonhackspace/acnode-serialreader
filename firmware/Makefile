@@ -21,7 +21,7 @@
 
 # Set the default in case no one specifies TARGET
 ifeq ($(TARGET),)
-TARGET=Rev1
+TARGET=Rev1.1
 endif
 
 # default to no debug
