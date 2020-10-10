@@ -53,6 +53,11 @@ def sendVersionRequest():
     buff[4] = calculateChecksum(buff)
     port.write(buff)
 
+def sendTemperatureRequest():
+    buff = bytearray(b"\xff\xdd\x03\x00\x00")
+    buff[4] = calculateChecksum(buff)
+    port.write(buff)
+
 
 def handleMessage():
     global buff
@@ -80,6 +85,10 @@ def handleMessage():
                     handleLogMessage(buff)
                 elif messagetype == 0x81:
                     handleVersionMessage(buff)
+                elif messagetype == 0xff:
+                    print("Unknown message type error received")
+                else:
+                    print("Unknown message received")
             else:
                 print(buff.hex())
                 print("Invalid checksum 0x%x (last byte 0x%x- sending NAK" % (s, buff[messagelength+3]))
@@ -102,6 +111,7 @@ import time
 port.flush()
 
 sendVersionRequest()
+sendTemperatureRequest()
 
 while True:
     port.flush()

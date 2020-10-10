@@ -39,6 +39,28 @@ void comms_query_reader_version_handler(comms_context_t* comms, unsigned char co
     comms_send_reader_version_response(comms, 0, 0, PSTR(LOG_STRINGIFY(BUILD_DATE)), PSTR(LOG_STRINGIFY(GIT_HASH)));
 }
 
+void comms_query_temperature_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    #ifdef HAS_LM75
+    struct lm75_response data = lm75_read_temperature();
+    comms_send_temperature_response(comms, data.high, data.low);
+    #else
+    #ifdef HAS_SI7060
+    // this is only on the test hardware, so don't bother with fractions
+    comms_send_temperature_response(comms, si7060_read_temperature(), 0);
+    #else
+    comms_send_temperature_response(comms, 0, 0);
+    #endif
+    #endif
+}
+
+void comms_reset_reader_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    wdt_enable(WDTO_15MS);
+    // watchdog timer will reboot us
+    while(1);
+}
+
 int main()
 {
     // disable the watchdog timer so it doesn't interrupt us until we are ready
@@ -68,11 +90,6 @@ int main()
     wdt_reset();
 
     pn532_init(&pn532_ctx);
-
-    #ifdef HAS_LM75
-    unsigned char temperature = lm75_read_temperature();
-    DEBUG_LOG_BUFFER("Temperature: ", &temperature, 1);
-    #endif
 
     //pn532_get_firmware_version(&pn532_ctx);
 

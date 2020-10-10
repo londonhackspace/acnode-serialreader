@@ -18,10 +18,12 @@
 
 static const unsigned int max_tx_payload = COMMS_TXBUFFER_SIZE - 5;
 
+static unsigned char calculate_checksum(const unsigned char* data);
+
 // Weak implementations of the message processors
 void comms_default_message_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
 {
-    //comms_send_unknown_message_reply(comms, code);
+    comms_send_unknown_message_reply(comms, code);
 }
 
 #define DEFAULT_MESSAGE_HANDLER(M) void M (comms_context_t*, unsigned char, unsigned char*, size_t) __attribute__ ((weak, alias ("comms_default_message_handler")))
@@ -29,6 +31,9 @@ void comms_default_message_handler(comms_context_t* comms, unsigned char code, u
 DEFAULT_MESSAGE_HANDLER(comms_query_reader_version_handler);
 DEFAULT_MESSAGE_HANDLER(comms_reader_version_response_handler);
 DEFAULT_MESSAGE_HANDLER(comms_log_message_handler);
+DEFAULT_MESSAGE_HANDLER(comms_reset_reader_handler);
+DEFAULT_MESSAGE_HANDLER(comms_query_temperature_handler);
+DEFAULT_MESSAGE_HANDLER(comms_temperature_response_handler);
 
 // default for this explicitly defined since we don't want to send "unknown" replies to unknown reply messages!
 __attribute__ ((weak))
@@ -46,8 +51,11 @@ enum comms_state
 enum message_nums
 {
     MSG_QUERY_READER_VERSION = 0x01,
+    MSG_QUERY_TEMPERATURE = 0x03,
+    MSG_RESET_READER = 0x04,
     MSG_READER_VERSION_RESPONSE = 0x81,
     MSG_LOG = 0x82,
+    MSG_TEMPERATURE_RESPONSE = 0x83,
 
     MSG_UNKNOWN_MESSAGE_REPLY_H2R = 0x7f,
     MSG_UNKNOWN_MESSAGE_REPLY_R2H = 0xff,
@@ -88,6 +96,22 @@ static void close_gap(comms_context_t* comms, unsigned int start, unsigned int c
 
 static void process_message(comms_context_t* comms, unsigned int start, unsigned int length)
 {
+    unsigned char checksum = calculate_checksum(comms->rxbuffer+start);
+
+    unsigned char scratch[2];
+    scratch[0] = 0xfd;
+    if(checksum != comms->rxbuffer[start+3+length])
+    {
+        // send nak
+        scratch[1] = 0x03;
+    }
+    else
+    {
+        scratch[1] = 0x02;
+    }
+
+    comms->send(scratch, 2);
+
     unsigned char code = comms->rxbuffer[start+2];
     unsigned char* payload = comms->rxbuffer+start+4;
     size_t payloadLength = length-5;
@@ -105,6 +129,18 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
         case MSG_LOG:
         {
             comms_log_message_handler(comms, code, payload, payloadLength);
+        } break;
+        case MSG_QUERY_TEMPERATURE:
+        {
+            comms_query_temperature_handler(comms, code, payload, payloadLength);
+        } break;
+        case MSG_TEMPERATURE_RESPONSE:
+        {
+            comms_temperature_response_handler(comms, code, payload, payloadLength);
+        } break;
+        case MSG_RESET_READER:
+        {
+            comms_reset_reader_handler(comms, code, payload, payloadLength);
         } break;
         case MSG_UNKNOWN_MESSAGE_REPLY_R2H:
         {
@@ -137,21 +173,6 @@ void comms_poll(comms_context_t* comms)
 {
     process_receive(comms);
 
-    /*switch(comms->state)
-    {
-        case STATE_IDLE:
-        {
-            lights_set(0,255,0);
-        } break;
-        case STATE_WAIT_ACK:
-        {
-            if(comms->retryCounter > 0)
-                lights_set(255,0,0);
-            else
-                lights_set(0,0,255);
-        } break;
-    }*/
-
     // do we need to attempt a retransmission?
     if(comms->state == STATE_WAIT_ACK)
     {
@@ -178,29 +199,26 @@ void comms_poll(comms_context_t* comms)
             processed_to = i;
             continue;
         }
-        if(comms->state == STATE_WAIT_ACK)
+        if(comms->rxbuffer[i] == 0xfd && comms->rxbuffer[i+1] == 0x02)
         {
-            if(comms->rxbuffer[i] == 0xfd && comms->rxbuffer[i+1] == 0x02)
-            {
-                // Woohoo this is an ack!
-                comms->state = STATE_IDLE;
-                i += 1; // the loop will increment by one but we grabbed two bytes
-                processed_to = i+1;
-                comms->retryCounter = 0;
-                continue;
-            }
-            else if(comms->rxbuffer[i] == 0xfd && comms->rxbuffer[i+1] == 0x03)
-            {
-                // Ah a NAK. Remove it from the buffer and resend the last message
-                comms->send(comms->txbuffer, comms->lastmsglength);
-                comms->ackWaitCounter = tickcounter_get();
-                ++comms->retryCounter;
-                i += 1; // the loop will increment by one but we grabbed two bytes
-                processed_to = i+1;
-                continue;
-            }
+            // Woohoo this is an ack!
+            comms->state = STATE_IDLE;
+            i += 1; // the loop will increment by one but we grabbed two bytes
+            processed_to = i+1;
+            comms->retryCounter = 0;
+            continue;
         }
-        else if(comms->rxbuffer[i] == 0xff && comms->rxbuffer[i+1] == 0xdd)
+        else if(comms->rxbuffer[i] == 0xfd && comms->rxbuffer[i+1] == 0x03)
+        {
+            // Ah a NAK. Remove it from the buffer and resend the last message
+            comms->send(comms->txbuffer, comms->lastmsglength);
+            comms->ackWaitCounter = tickcounter_get();
+            ++comms->retryCounter;
+            i += 1; // the loop will increment by one but we grabbed two bytes
+            processed_to = i+1;
+            continue;
+        }
+        if(comms->rxbuffer[i] == 0xff && comms->rxbuffer[i+1] == 0xdd)
         {
             // do we have enough to be a plausible message?
             if((comms->buffer_level-i) >= 5) // 5 is the shortest possible message
@@ -314,13 +332,7 @@ void comms_send_log_flash(comms_context_t* comms, int level, const char* context
 
     const int max_length = max_tx_payload - 3 - context_length; // leave space for size and level fields
     // make sure the buffer is ready - if not, keep trying
-    while(comms->state != STATE_IDLE)
-    {
-        #ifdef __AVR__
-        wdt_reset();
-        #endif
-        comms_poll(comms);
-    }
+    comms_wait_for_idle(comms);
     
     if(length > max_length)
     {
@@ -341,6 +353,26 @@ void comms_send_log_flash(comms_context_t* comms, int level, const char* context
 void comms_send_logz_flash(comms_context_t* comms, int level, const char* context, const char* flashmessage)
 {
     comms_send_log_flash(comms, level, context, flashmessage, strlen_P(flashmessage));
+}
+
+void comms_send_temperature_query(comms_context_t* comms)
+{
+    comms_wait_for_idle(comms);
+
+    prepare_tx_buffer(comms, MSG_QUERY_TEMPERATURE, 0);
+    comms->txbuffer[4] = calculate_checksum(comms->txbuffer);
+    send_message(comms);
+}
+
+void comms_send_temperature_response(comms_context_t* comms, unsigned char high, unsigned char low)
+{
+    comms_wait_for_idle(comms);
+    prepare_tx_buffer(comms, MSG_TEMPERATURE_RESPONSE, 2);
+
+    comms->txbuffer[4] = high;
+    comms->txbuffer[5] = low;
+    comms->txbuffer[6] = calculate_checksum(comms->txbuffer);
+    send_message(comms);
 }
 
 void comms_send_unknown_message_reply(comms_context_t* comms, unsigned char messageCode)

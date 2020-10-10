@@ -342,6 +342,70 @@ static bool test_send_reader_version_response()
     TEST_PASS();
 }
 
+static bool test_send_temperature_query()
+{
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+
+    std::vector<unsigned char> refmessage = {
+        0xff, 0xdd,
+        0x03, 1,
+
+        0xfc
+    };
+
+    comms_send_temperature_query(&victim);
+
+    TEST_ASSERT(txqueue.size() == 1);
+    TEST_ASSERT(txqueue.front() == refmessage);
+    txqueue.pop();
+
+    rxqueue.push({ 0xfd, 0x02 });
+    comms_poll(&victim);
+
+    // Check the ACK has been collected
+    TEST_ASSERT(rxqueue.empty());
+
+    // check the comms handler is idle
+    TEST_ASSERT(victim.state == 0);
+
+    TEST_PASS();
+}
+
+static bool test_send_temperature_response()
+{
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+
+    std::vector<unsigned char> refmessage = {
+        0xff, 0xdd,
+        0x83, 3,
+
+        0x43, 0x41,
+
+        0xf6
+    };
+
+    comms_send_temperature_response(&victim, 0x43, 0x41);
+
+    TEST_ASSERT(txqueue.size() == 1);
+    TEST_ASSERT(txqueue.front() == refmessage);
+    txqueue.pop();
+
+    rxqueue.push({ 0xfd, 0x02 });
+    comms_poll(&victim);
+
+    // Check the ACK has been collected
+    TEST_ASSERT(rxqueue.empty());
+
+    // check the comms handler is idle
+    TEST_ASSERT(victim.state == 0);
+
+    TEST_PASS();
+}
+
 static bool test_log_send_repeated()
 {
     comms_context_t victim;
@@ -431,6 +495,9 @@ int main(int argc, char** argv)
 
     ADD_TEST(test_sample_log_message);
     ADD_TEST(test_send_reader_version_response);
+
+    ADD_TEST(test_send_temperature_query);
+    ADD_TEST(test_send_temperature_response);
 
     ADD_TEST(test_log_send_repeated);
 

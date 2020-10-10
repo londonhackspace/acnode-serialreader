@@ -9,6 +9,12 @@
 #ifndef LM75_H
 #define LM75_H
 
-int lm75_read_temperature();
+struct lm75_response
+{
+	unsigned char high;
+	unsigned char low;
+};
+
+struct lm75_response lm75_read_temperature();
 
 #endif

@@ -77,9 +77,18 @@ void comms_send_log_flash(comms_context_t* comms, int level, const char* context
 void comms_send_logz_flash(comms_context_t* comms, int level, const char* context, const char* flashmessage);
 #endif
 
+void comms_send_temperature_query(comms_context_t* comms);
+void comms_send_temperature_response(comms_context_t* comms, unsigned char high, unsigned char low);
+
 // Implement any of these you care about handling - weak implementations are provided by default
 void comms_query_reader_version_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
 void comms_reader_version_response_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
+
+void comms_query_temperature_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
+void comms_temperature_response_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
+
+void comms_reset_reader_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
+
 void comms_log_message_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
 void comms_unknown_message_reply_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
 

@@ -60,13 +60,26 @@ Valid but unknown messages should be ACKnowledged to avoid the other end resendi
 | Message Code | Payload Length | Name | Direction |
 | --- | --- | --- | --- |
 | 0x01 | 0 | Query Reader Version | Host->Reader |
+| 0x03 | 0 | Query Temperature | Host->Reader |
+| 0x04 | 0 | Reset Reader | Host->Reader |
 | 0x81 | Varies | Reader Version Response | Reader->Host |
 | 0x82 | Varies | Log Message | Reader->Host |
+| 0x83 | 2 | Temperature Response | Reader->Host |
 | 0x7f | 1 | Unknown Message Reply | Host->Reader |
 | 0xff | 1 | Unknown Message Reply | Reader->Host |
 
 #### Query Reader Version (0x01)
 *Description:* Get the version of the firmware running on the board
+*Direction:* Host->Reader
+*Payload:* None
+
+#### Query Reader Version (0x03)
+*Description:* Get the temperature of the board
+*Direction:* Host->Reader
+*Payload:* None
+
+#### Reset Reader (0x04)
+*Description:* Reset the reader CPU
 *Direction:* Host->Reader
 *Payload:* None
 
@@ -93,6 +106,17 @@ Valid but unknown messages should be ACKnowledged to avoid the other end resendi
 | 1 | Warning |
 | 2 | Informational |
 | 3 | Debug |
+
+#### Temperature Response (0x83)
+*Description:* Temperature Reading from Reader
+*Direction:* Reader->Host
+*Payload:*
+| 0 | 1 |
+| Integer Temperature | Fractional Temperature |
+
+Temperature is given in celcius. The high bit is of the integer part is the sign bit. 
+
+You can treat this as a 15 bit integer and divide by 256.
 
 #### Unknown Message Reply (0x7f or 0xff)
 *Description:* Reply to unknown message
