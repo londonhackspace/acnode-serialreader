@@ -24,7 +24,7 @@
 
 # Set the default in case no one specifies TARGET
 ifeq ($(TARGET),)
-TARGET=Rev1.1
+TARGET=Rev1.1-328
 endif
 
 # default to no debug
@@ -89,11 +89,11 @@ DEFINES=\
 	-DGIT_HASH=$(GITHASH) \
 	-DBUILD_DATE="$(BUILDDATE)"
 
-CFLAGS=-mmcu=${MCU} $(DEFINES) -ggdb -O2 -I$(CURDIR)/src/include -Wall -Werror \
+CFLAGS=-mmcu=${MCU} $(DEFINES) -ggdb -Os -I$(CURDIR)/src/include -Wall -Werror \
 		-Wl,--gc-sections -flto -I$(CURDIR)/build $(CFLAGS_TARGET) \
 		-I$(CURDIR)/src/target/$(TARGET)
 
-BOOTLOADER_CFLAGS=$(CFLAGS) -Wl,--section-start=.text=$(BOOTSTART)
+BOOTLOADER_CFLAGS=$(CFLAGS) -Wl,--section-start=.text=$(BOOTSTART) -DBUILD_BOOTLOADER=1
 
 # build the output filename
 OUTPUT_NAME=$(PROJECT)-$(TARGET)

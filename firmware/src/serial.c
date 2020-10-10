@@ -29,7 +29,6 @@ static unsigned int min(unsigned int a, unsigned int b)
 #include <avr/pgmspace.h>
 
 #define SERIAL_BUFFER_SIZE 64
-#define SERIAL_BUFFER_HIGH_MARK 58
 char serialBuffer[SERIAL_BUFFER_SIZE];
 
 // volatile since it's written to from an ISR
@@ -77,14 +76,6 @@ ISR(USART_RX_vect)
     {
         bufferpointer = 0;
     }
-
-    // nearly overflowing?
-    if(serial_countSerialBufferSize() >= SERIAL_BUFFER_HIGH_MARK)
-    {
-        //send xoff
-        serial_putchar(0x13);
-        bufferfull = true;
-    }
 }
 
 ISR(USART_UDRE_vect)
@@ -130,14 +121,6 @@ char serial_getchar()
     if(readbufferpointer >= SERIAL_BUFFER_SIZE)
     {
         readbufferpointer = 0;
-    }
-
-    // if we were in danger of filling up, but now have space, send XON
-    if(serial_countSerialBufferSize() < SERIAL_BUFFER_HIGH_MARK && bufferfull)
-    {
-        //send xon
-        serial_putchar(0x11);
-        bufferfull = false;
     }
 
     return result;

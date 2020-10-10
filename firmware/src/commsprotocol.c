@@ -118,10 +118,16 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
 
     switch(code)
     {
+        case MSG_RESET_READER:
+        {
+            comms_reset_reader_handler(comms, code, payload, payloadLength);
+        } break;
         case MSG_QUERY_READER_VERSION:
         {
             comms_query_reader_version_handler(comms, code, payload, payloadLength);
         } break;
+// If we're building the bootloader, skip some options to save a bit of code space
+#ifndef BUILD_BOOTLOADER
         case MSG_READER_VERSION_RESPONSE:
         {
             comms_reader_version_response_handler(comms, code, payload, payloadLength);
@@ -137,10 +143,6 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
         case MSG_TEMPERATURE_RESPONSE:
         {
             comms_temperature_response_handler(comms, code, payload, payloadLength);
-        } break;
-        case MSG_RESET_READER:
-        {
-            comms_reset_reader_handler(comms, code, payload, payloadLength);
         } break;
         case MSG_UNKNOWN_MESSAGE_REPLY_R2H:
         {
@@ -160,6 +162,7 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
             comms_unknown_message_reply_handler(comms, code, payload, payloadLength);
 #endif
         } break;
+#endif // ifndef BUILD_BOOTLOADER
         default:
         {
             comms_default_message_handler(comms, code, payload, payloadLength);
