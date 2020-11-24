@@ -36,6 +36,7 @@ comms_context_t comms;
 
 void comms_query_reader_version_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
 {
+    DEBUG_LOG_LITERAL("Ah, you query my version?");
     comms_send_reader_version_response(comms, 0, 0, PSTR(LOG_STRINGIFY(BUILD_DATE)), PSTR(LOG_STRINGIFY(GIT_HASH)));
 }
 
@@ -59,6 +60,11 @@ void comms_reset_reader_handler(comms_context_t* comms, unsigned char code, unsi
     wdt_enable(WDTO_15MS);
     // watchdog timer will reboot us
     while(1);
+}
+
+void comms_query_bootloader_status_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    comms_send_bootloader_status_response(comms, BOOTLOADER_STATUS_NOT_BOOTLOADER);
 }
 
 int main()

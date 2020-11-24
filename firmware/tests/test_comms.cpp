@@ -7,11 +7,19 @@
 static std::queue<std::vector<unsigned char>> rxqueue;
 static std::queue<std::vector<unsigned char>> txqueue;
 
+static bool readerVersionQueried = false;
+
+
+extern "C" void comms_query_reader_version_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    readerVersionQueried = true;
+}
 
 static void test_reset()
 {
     rxqueue = std::queue<std::vector<unsigned char>>();
     txqueue = std::queue<std::vector<unsigned char>>();
+    readerVersionQueried = false;
 }
 
 static unsigned int rxfunc(unsigned char* data,unsigned int maxsize)
@@ -40,7 +48,7 @@ static void txfunc(const unsigned char* data,unsigned int size)
 
 #define STRINGIFY_(S) #S
 #define STRINGIFY(S) STRINGIFY_(S)
-#define ADD_TEST(func) if(!func()) { std::cerr << "[Fail] " STRINGIFY(func) << std::endl; retval = 1; } else std::cerr << "[Pass] " STRINGIFY(func) << std::endl
+#define ADD_TEST(func) test_reset(); if(!func()) { std::cerr << "[Fail] " STRINGIFY(func) << std::endl; retval = 1; } else std::cerr << "[Pass] " STRINGIFY(func) << std::endl
 #define TEST_PASS() return true
 #define TEST_FAIL() return false
 #define TEST_ASSERT(VAL) if(!(VAL)) {std::cerr << "Assertion Fail: "  STRINGIFY((VAL)) << std::endl; return false; } if(0)
@@ -443,6 +451,105 @@ static bool test_log_send_repeated()
     TEST_PASS();
 }
 
+static bool test_send_bootloader_status_query()
+{
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+
+    std::vector<unsigned char> refmessage = {
+        0xff, 0xdd,
+        0x20, 1,
+
+        0xdf
+    };
+
+    comms_send_bootloader_status_query(&victim);
+
+    TEST_ASSERT(txqueue.size() == 1);
+    TEST_ASSERT(txqueue.front() == refmessage);
+    txqueue.pop();
+
+    rxqueue.push({ 0xfd, 0x02 });
+    comms_poll(&victim);
+
+    // Check the ACK has been collected
+    TEST_ASSERT(rxqueue.empty());
+
+    // check the comms handler is idle
+    TEST_ASSERT(victim.state == 0);
+
+    TEST_PASS();
+}
+
+static bool test_send_bootloader_status_response()
+{
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+
+    std::vector<unsigned char> refmessage = {
+        0xff, 0xdd,
+        0xa0, 2,
+        0x00,
+
+        0x5e
+    };
+
+    comms_send_bootloader_status_response(&victim, BOOTLOADER_STATUS_NOT_BOOTLOADER);
+
+    TEST_ASSERT(txqueue.size() == 1);
+    TEST_ASSERT(txqueue.front() == refmessage);
+    txqueue.pop();
+
+    rxqueue.push({ 0xfd, 0x02 });
+    comms_poll(&victim);
+
+    // Check the ACK has been collected
+    TEST_ASSERT(rxqueue.empty());
+
+    // check the comms handler is idle
+    TEST_ASSERT(victim.state == 0);
+
+    TEST_PASS();
+}
+
+// There's little point testing receiving all messages,
+// so we use this one as a representative sample
+// Well, we probably should test them all,
+// but that's tedious and I don't think it's worth it
+static bool test_receive_reader_version_query()
+{
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+
+    std::vector<unsigned char> refmessage = {
+        0xff, 0xdd,
+        0x01, 1,
+
+        0xfe
+    };
+
+    std::vector<unsigned char> ackMessage = {
+        0xfd, 0x02
+    };
+
+    rxqueue.push(refmessage);
+
+    TEST_ASSERT(!readerVersionQueried);
+    comms_poll(&victim);
+
+    // make sure we got an ack to that
+    TEST_ASSERT(txqueue.size() == 1);
+    TEST_ASSERT(txqueue.front() == ackMessage);
+    txqueue.pop();
+
+    TEST_ASSERT(readerVersionQueried);
+
+    TEST_PASS();
+}
+
 // regression test for bug found
 static bool test_send_junk_before_ack()
 {
@@ -498,8 +605,12 @@ int main(int argc, char** argv)
 
     ADD_TEST(test_send_temperature_query);
     ADD_TEST(test_send_temperature_response);
+    ADD_TEST(test_receive_reader_version_query);
 
     ADD_TEST(test_log_send_repeated);
+
+    ADD_TEST(test_send_bootloader_status_query);
+    ADD_TEST(test_send_bootloader_status_response);
 
     ADD_TEST(test_send_junk_before_ack);
 

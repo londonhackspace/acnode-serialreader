@@ -62,10 +62,13 @@ Valid but unknown messages should be ACKnowledged to avoid the other end resendi
 | 0x01 | 0 | Query Reader Version | Host->Reader |
 | 0x03 | 0 | Query Temperature | Host->Reader |
 | 0x04 | 0 | Reset Reader | Host->Reader |
+| 0x20 | 0 | Get Bootloader Status | Host->Reader |
+| 0x21 | Varies | Write Firmware (Bootloader) | Host->Reader |
 | 0x81 | Varies | Reader Version Response | Reader->Host |
 | 0x82 | Varies | Log Message | Reader->Host |
 | 0x83 | 2 | Temperature Response | Reader->Host |
 | 0x7f | 1 | Unknown Message Reply | Host->Reader |
+| 0xa0 | 1 | Bootloader Status Response | Reader->Host |
 | 0xff | 1 | Unknown Message Reply | Reader->Host |
 
 #### Query Reader Version (0x01)
@@ -82,6 +85,21 @@ Valid but unknown messages should be ACKnowledged to avoid the other end resendi
 *Description:* Reset the reader CPU
 *Direction:* Host->Reader
 *Payload:* None
+
+#### Query Bootloader Status (0x20)
+*Description:* Get the status of the bootloader
+*Direction:* Host->Reader
+*Payload:* None
+
+#### Write Firmware (Bootloader) (0x21)
+*Description:* Write firmware when in bootloader mode
+*Direction:* Host->Reader
+*Payload:*
+
+| 0-1 | 2-n |
+| Address of first byte | up to 128 bytes of data |
+
+The address of the first byte must be the boundary of a page
 
 #### Reader Version Response (0x81)
 *Description:* Response to `Query Reader Version`
@@ -117,6 +135,18 @@ Valid but unknown messages should be ACKnowledged to avoid the other end resendi
 Temperature is given in celcius. The high bit is of the integer part is the sign bit. 
 
 You can treat this as a 15 bit integer and divide by 256.
+
+#### Bootloader Status Response (0xa0)
+*Description:* Details of bootloader status from reader
+*Direction:* Reader->Host
+*Payload:*
+| 0 |
+| State (see below) |
+
+| Numeric State | Description |
+| 0 | Not in bootloader |
+| 1 | Idle |
+| 2 | Busy |
 
 #### Unknown Message Reply (0x7f or 0xff)
 *Description:* Reply to unknown message

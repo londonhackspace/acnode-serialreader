@@ -17,8 +17,16 @@
 #include <avr/wdt.h>
 #include <util/delay.h>
 #include <avr/pgmspace.h>
+#include <avr/boot.h>
+#include <avr/eeprom.h>
 
 comms_context_t comms;
+bool bootloaderUsed = false;
+
+void comms_query_reader_version_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    comms_send_reader_version_response(comms, 0, 0, PSTR(LOG_STRINGIFY(BUILD_DATE)), PSTR(LOG_STRINGIFY(GIT_HASH)));
+}
 
 void comms_reset_reader_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
 {
@@ -26,6 +34,36 @@ void comms_reset_reader_handler(comms_context_t* comms, unsigned char code, unsi
     // watchdog timer will reboot us
     while(1);
 }
+
+void comms_query_bootloader_status_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    if(boot_spm_busy() || !eeprom_is_ready())
+    {
+        comms_send_bootloader_status_response(comms, BOOTLOADER_STATUS_BUSY);
+    }
+    else
+    {
+        comms_send_bootloader_status_response(comms, BOOTLOADER_STATUS_IDLE);
+    }
+}
+
+void comms_bootloader_write_data_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    bootloaderUsed = true;
+    uint16_t address = (payload[0] << 8) + payload[1];
+    size_t dataSize = payloadLength-2;
+
+    for(size_t pos = 0; pos < dataSize; pos += 2)
+    {
+        uint16_t word = (payload[3+pos] << 8) + payload[2+pos];
+        boot_page_fill(address+pos, word);
+    }
+
+    boot_page_erase (address);
+    boot_spm_busy_wait ();
+    boot_page_write(address);
+}
+
 
 int main()
 {
@@ -53,7 +91,7 @@ int main()
 
     lights_set(255,0,0);
     unsigned int start = tickcounter_get();
-    while(tickcounter_get()-start < 1000)
+    while(tickcounter_get()-start < 1000 || bootloaderUsed)
     {
         wdt_reset();
         comms_poll(&comms);

@@ -25,9 +25,9 @@ static unsigned char calculate_checksum(const unsigned char* data);
 void comms_default_message_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
 {
     // This saves quite a bit of space in the bootloader!
-#ifndef BUILD_BOOTLOADER
+//#ifndef BUILD_BOOTLOADER
     comms_send_unknown_message_reply(comms, code);
-#endif
+//#endif
 }
 
 #define DEFAULT_MESSAGE_HANDLER(M) void M (comms_context_t*, unsigned char, unsigned char*, size_t) __attribute__ ((weak, alias ("comms_default_message_handler")))
@@ -38,6 +38,9 @@ DEFAULT_MESSAGE_HANDLER(comms_log_message_handler);
 DEFAULT_MESSAGE_HANDLER(comms_reset_reader_handler);
 DEFAULT_MESSAGE_HANDLER(comms_query_temperature_handler);
 DEFAULT_MESSAGE_HANDLER(comms_temperature_response_handler);
+DEFAULT_MESSAGE_HANDLER(comms_query_bootloader_status_handler);
+DEFAULT_MESSAGE_HANDLER(comms_bootloader_status_response_handler);
+DEFAULT_MESSAGE_HANDLER(comms_bootloader_write_data_handler);
 
 // default for this explicitly defined since we don't want to send "unknown" replies to unknown reply messages!
 __attribute__ ((weak))
@@ -57,9 +60,12 @@ enum message_nums
     MSG_QUERY_READER_VERSION = 0x01,
     MSG_QUERY_TEMPERATURE = 0x03,
     MSG_RESET_READER = 0x04,
+    MSG_QUERY_BOOTLOADER_STATUS = 0x20,
+    MSG_WRITE_BOOTLOADER_DATA = 0x21,
     MSG_READER_VERSION_RESPONSE = 0x81,
     MSG_LOG = 0x82,
     MSG_TEMPERATURE_RESPONSE = 0x83,
+    MSG_BOOTLOADER_STATUS_RESPONSE = 0xa0,
 
     MSG_UNKNOWN_MESSAGE_REPLY_H2R = 0x7f,
     MSG_UNKNOWN_MESSAGE_REPLY_R2H = 0xff,
@@ -104,7 +110,7 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
 
     unsigned char scratch[2];
     scratch[0] = 0xfd;
-    if(checksum != comms->rxbuffer[start+3+length])
+    if(checksum != comms->rxbuffer[length-1])
     {
         // send nak
         scratch[1] = 0x03;
@@ -132,6 +138,14 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
         {
             comms_reset_reader_handler(comms, code, payload, payloadLength);
         } break;
+        case MSG_QUERY_BOOTLOADER_STATUS:
+        {   
+            comms_query_bootloader_status_handler(comms, code, payload, payloadLength);
+        } break;
+        case MSG_WRITE_BOOTLOADER_DATA:
+        {
+            comms_bootloader_write_data_handler(comms, code, payload, payloadLength);
+        } break;
 // If we're building the bootloader, skip some options to save a bit of code space
 #ifndef BUILD_BOOTLOADER
         case MSG_QUERY_READER_VERSION:
@@ -144,6 +158,10 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
         } break;      
 // Similarly, if we're not building the host side, skip messages that are sent that way  
 #ifdef COMMS_HOST_MODE
+        case MSG_BOOTLOADER_STATUS_RESPONSE:
+        {
+            comms_bootloader_status_response_handler(comms, code, payload, payloadLength);
+        } break;
         case MSG_UNKNOWN_MESSAGE_REPLY_R2H:
         {
 
@@ -366,6 +384,7 @@ void comms_send_logz_flash(comms_context_t* comms, int level, const char* contex
 {
     comms_send_log_flash(comms, level, context, flashmessage, strlen_P(flashmessage));
 }
+#endif
 
 void comms_send_temperature_query(comms_context_t* comms)
 {
@@ -384,6 +403,25 @@ void comms_send_temperature_response(comms_context_t* comms, unsigned char high,
     comms->txbuffer[4] = high;
     comms->txbuffer[5] = low;
     comms->txbuffer[6] = calculate_checksum(comms->txbuffer);
+    send_message(comms);
+}
+
+void comms_send_bootloader_status_query(comms_context_t* comms)
+{
+    comms_wait_for_idle(comms);
+
+    prepare_tx_buffer(comms, MSG_QUERY_BOOTLOADER_STATUS, 0);
+    comms->txbuffer[4] = calculate_checksum(comms->txbuffer);
+    send_message(comms);
+}
+
+void comms_send_bootloader_status_response(comms_context_t* comms, enum bootloaderstatus status)
+{
+    comms_wait_for_idle(comms);
+
+    prepare_tx_buffer(comms, MSG_BOOTLOADER_STATUS_RESPONSE, 1);
+    comms->txbuffer[4] = status;
+    comms->txbuffer[5] = calculate_checksum(comms->txbuffer);
     send_message(comms);
 }
 
@@ -430,5 +468,3 @@ void comms_send_reader_version_response(comms_context_t* comms, int majorVersion
     comms->txbuffer[8+dateLength+hashLength] = calculate_checksum(comms->txbuffer);
     send_message(comms);
 }
-
-#endif

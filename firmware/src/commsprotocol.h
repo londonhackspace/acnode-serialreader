@@ -24,11 +24,11 @@ typedef unsigned int(*recvfunc)(unsigned char*,unsigned int);
 //#define COMMS_HOST_MODE
 
 #ifdef COMMS_HOST_MODE
-#define COMMS_TXBUFFER_SIZE 64
+#define COMMS_TXBUFFER_SIZE 192
 #define COMMS_RXBUFFER_SIZE 256
 #else
 #define COMMS_TXBUFFER_SIZE 256
-#define COMMS_RXBUFFER_SIZE 64
+#define COMMS_RXBUFFER_SIZE 192
 #endif
 
 typedef struct
@@ -59,6 +59,13 @@ enum loglevels
     LOG_LEVEL_DEBUG  = 3,
 };
 
+enum bootloaderstatus
+{
+    BOOTLOADER_STATUS_NOT_BOOTLOADER = 0,
+    BOOTLOADER_STATUS_IDLE = 1,
+    BOOTLOADER_STATUS_BUSY = 2,
+};
+
 void comms_init(comms_context_t* comms);
 void comms_set_handlers(comms_context_t* comms, sendfunc send, recvfunc receive);
 void comms_poll(comms_context_t* comms);
@@ -80,6 +87,9 @@ void comms_send_logz_flash(comms_context_t* comms, int level, const char* contex
 void comms_send_temperature_query(comms_context_t* comms);
 void comms_send_temperature_response(comms_context_t* comms, unsigned char high, unsigned char low);
 
+void comms_send_bootloader_status_query(comms_context_t* comms);
+void comms_send_bootloader_status_response(comms_context_t* comms, enum bootloaderstatus status);
+
 // Implement any of these you care about handling - weak implementations are provided by default
 void comms_query_reader_version_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
 void comms_reader_version_response_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
@@ -91,6 +101,11 @@ void comms_reset_reader_handler(comms_context_t* comms, unsigned char code, unsi
 
 void comms_log_message_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
 void comms_unknown_message_reply_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
+
+void comms_query_bootloader_status_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
+void comms_bootloader_status_response_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
+void comms_bootloader_write_data_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
+
 
 #ifdef __cplusplus
 }

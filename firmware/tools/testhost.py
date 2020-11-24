@@ -48,14 +48,18 @@ def handleVersionMessage(message):
     ghash = message[(8+date_length):(8+date_length+hash_length)].decode('utf8')
     print("Reader version %d.%d (%s) built at %s" % (major, minor, ghash, date))
 
+def handleTemperatureMessage(message):
+    intpart = message[4]
+    fracpart = message[5]
+    value = ((intpart << 8) + fracpart)/256
+    print("Temperature is %f" % (value,))
+
 def sendVersionRequest():
-    buff = bytearray(b"\xff\xdd\x01\x00\x00")
-    buff[4] = calculateChecksum(buff)
+    buff = bytearray(b"\xff\xdd\x01\x01\xfe")
     port.write(buff)
 
 def sendTemperatureRequest():
-    buff = bytearray(b"\xff\xdd\x03\x00\x00")
-    buff[4] = calculateChecksum(buff)
+    buff = bytearray(b"\xff\xdd\x03\x01\xfc")
     port.write(buff)
 
 
@@ -64,8 +68,10 @@ def handleMessage():
     while len(buff) >= 2:
         if buff[0] == 0xfd and buff[1] == 0x02:
             print("Got ACK")
+            buff = buff[2:]
         elif buff[0] == 0xfd and buff[1] == 0x03:
             print("Got NAK")
+            buff = buff[2:]
         elif buff[0] == 0xff and buff[1] == 0xdd:
             if len(buff) < 4:
                 # incomplete buffer
@@ -85,6 +91,8 @@ def handleMessage():
                     handleLogMessage(buff)
                 elif messagetype == 0x81:
                     handleVersionMessage(buff)
+                elif messagetype == 0x83:
+                    handleTemperatureMessage(buff)
                 elif messagetype == 0xff:
                     print("Unknown message type error received")
                 else:
@@ -110,8 +118,13 @@ import time
 
 port.flush()
 
+# send an ack just in case
+port.write(b"\xfd\x02")
+
 sendVersionRequest()
+port.flush()
 sendTemperatureRequest()
+port.flush()
 
 while True:
     port.flush()
