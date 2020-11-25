@@ -58,7 +58,7 @@ bool i2c_address(uint8_t address, bool read)
     return ((TWSR & 0xF8) == 0x18) || ((TWSR & 0xF8) == 0x40);
 }
 
-static bool i2c_senddata(uint8_t data)
+bool i2c_senddata(uint8_t data)
 {
     TWDR = data;
     TWCR = (1<<TWINT) | (1<<TWEN);

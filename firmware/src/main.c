@@ -23,6 +23,10 @@
 #include "lm75.h"
 #endif
 
+#ifdef HAS_DISPLAY
+#include "ssd1306.h"
+#endif
+
 #include <util/delay.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -97,6 +101,10 @@ int main()
 
     pn532_init(&pn532_ctx);
 
+#ifdef HAS_DISPLAY
+    ssd1306_init(&ssd1306, 0x3c);
+#endif
+
     //pn532_get_firmware_version(&pn532_ctx);
 
     // enable the watchdog with a fairly generous 500ms timeout
@@ -112,6 +120,10 @@ int main()
         wdt_reset();
         pn532_poll(&pn532_ctx);
         comms_poll(&comms);
+
+        #ifdef HAS_DISPLAY
+        ssd1306_poll(&ssd1306);
+        #endif
 
         if((tickcounter_get() - lastupdate) >= 12)
         {

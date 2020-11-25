@@ -25,7 +25,7 @@ FREQUENCY=16000000
 CFLAGS_TARGET=
 
 # target-specific sources
-TARGET_SOURCES= src/lm75.c
+TARGET_SOURCES= src/lm75.c src/ssd1306.c
 
 BOOTSTART=0x7000
 

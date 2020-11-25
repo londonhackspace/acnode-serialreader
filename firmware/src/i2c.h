@@ -44,6 +44,9 @@ int i2c_read_raw(uint8_t* buffer, uint8_t length);
 // read a single byte without resetting state
 bool i2c_recvdata(uint8_t* data, bool last);
 
+// send some data
+bool i2c_senddata(uint8_t data);
+
 // force an i2c stop
 void i2c_stop();
 
