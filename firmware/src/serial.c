@@ -28,7 +28,7 @@ static unsigned int min(unsigned int a, unsigned int b)
 
 #include <avr/pgmspace.h>
 
-#define SERIAL_BUFFER_SIZE 64
+#define SERIAL_BUFFER_SIZE 32
 char serialBuffer[SERIAL_BUFFER_SIZE];
 
 // volatile since it's written to from an ISR

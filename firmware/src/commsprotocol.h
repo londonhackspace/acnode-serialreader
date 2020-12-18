@@ -27,8 +27,12 @@ typedef unsigned int(*recvfunc)(unsigned char*,unsigned int);
 #define COMMS_TXBUFFER_SIZE 192
 #define COMMS_RXBUFFER_SIZE 256
 #else
-#define COMMS_TXBUFFER_SIZE 256
-#define COMMS_RXBUFFER_SIZE 192
+#define COMMS_TXBUFFER_SIZE 192
+#ifdef BUILD_BOOTLOADER
+#define COMMS_RXBUFFER_SIZE 256
+#else
+#define COMMS_RXBUFFER_SIZE 64
+#endif
 #endif
 
 typedef struct

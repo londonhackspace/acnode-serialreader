@@ -22,10 +22,10 @@ AVRDUDE_EXTRA_OPTS=-U lfuse:w:0xce:m -U hfuse:w:0xd8:m -U efuse:w:0xf3:m
 FREQUENCY=12000000
 
 # Any extra, target-specific CFLAGS
-CFLAGS_TARGET=
+CFLAGS_TARGET=-Ibuild/fonts/
 
 # target-specific sources
-TARGET_SOURCES= src/lm75.c src/ssd1306.c
+TARGET_SOURCES=src/lm75.c src/ssd1306.c ${MFSRC}
 
 BOOTSTART=0x7000
 

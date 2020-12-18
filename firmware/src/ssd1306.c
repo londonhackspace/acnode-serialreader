@@ -10,12 +10,22 @@
 #include "i2c.h"
 #include "log.h"
 
+#include <mcufont.h>
 #include <string.h>
 #include <avr/wdt.h>
 
 ssd1306_control ssd1306;
 
 #define I2C_FAIL_CATCHER(STUFF) if(!(STUFF)) WARN_LOG_LITERAL("Error sending i2c stuff")
+
+void mf_callback(int16_t x, int16_t y, uint8_t count, uint8_t alpha, void *state)
+{
+    ssd1306_control* instance = (ssd1306_control*)state;
+    for(int i=0; i < count; ++i)
+    {
+        ssd1306_set_pixel(instance, x+i, y, alpha==255);
+    }
+}
 
 void ssd1306_init(ssd1306_control* instance, uint8_t address)
 {
@@ -131,7 +141,48 @@ void ssd1306_poll(ssd1306_control* instance)
             instance->updated_needed = true;
             instance->draw_progress = 0;
             ssd1306_set_display_on(instance, true);
-            memset(instance->buffer, 0x42, 1024);
+            ssd1306_clear(instance);
+            const struct mf_font_s* font = mf_find_font("fixed_5x8");
+            if(!font)
+            {
+                const struct mf_font_list_s* fonts = mf_get_font_list();
+                const struct mf_font_list_s* cur_fonts = fonts;
+                while(cur_fonts)
+                {
+                    WARN_LOG_LITERAL("Got Font:");
+                    WARN_LOG(cur_fonts->font->short_name);
+                    cur_fonts = cur_fonts->next;
+                }
+                if(!fonts)
+                {
+                    WARN_LOG_LITERAL("Unable to get any font!");
+                }
+                else
+                {
+                    font = fonts->font;
+                    if(!font)
+                    {
+                        WARN_LOG_LITERAL("First font is missing!");
+                        instance->state = STATE_IDLE;
+                        return;
+                    }
+                    else
+                    {
+                        WARN_LOG_LITERAL("Using first font");
+                        DEBUG_LOG_BUFFER("Font at", (uint8_t*)&font, 2);
+                        WARN_LOG(font->short_name);
+                    }
+                }
+            }
+            
+            const char* text = PSTR("LHS ACNode");
+            int pos = 5;
+            int len = strlen_P(text);
+            for(int i=0;i < len; ++i)
+            {
+                char c = pgm_read_byte(text+i);
+                pos += mf_render_character(font, pos, 5, c, mf_callback, instance);
+            }
             instance->state = STATE_IDLE;
         } break;
         case STATE_IDLE:
@@ -158,4 +209,31 @@ void ssd1306_poll(ssd1306_control* instance)
             }
         } break;
     };
+}
+
+void ssd1306_set_pixel(ssd1306_control* instance, uint8_t x, uint8_t y, bool state)
+{
+    if(x >= SSD1306_WIDTH || y >= SSD1306_HEIGHT)
+    {
+        return;
+    }
+
+    uint8_t page = y/8;
+    uint8_t *dataptr = instance->buffer + (page*SSD1306_WIDTH)+x;
+
+    if(state)
+    {
+        (*dataptr) |= (1 << (y % 8));
+    }
+    else
+    {
+        (*dataptr) &= ~(1 << (y % 8));
+    }
+    instance->updated_needed = true;
+}
+
+void ssd1306_clear(ssd1306_control* instance)
+{
+    memset(instance->buffer, 0x00, (SSD1306_WIDTH*SSD1306_HEIGHT)/8);
+    instance->updated_needed = true;
 }

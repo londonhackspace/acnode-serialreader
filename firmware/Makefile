@@ -77,6 +77,10 @@ endif
 # create the all target up here so it's definitely the first
 all: full
 
+# include mcufont's definitions
+include mcufont/decoder/mcufont.mk
+include fonts/fonts.mk
+
 # include target-specific variables
 include targets/$(TARGET).mk
 
@@ -91,7 +95,7 @@ DEFINES=\
 
 CFLAGS=-mmcu=${MCU} $(DEFINES) -ggdb -Os -I$(CURDIR)/src/include -Wall -Werror \
 		-Wl,--gc-sections -flto -I$(CURDIR)/build $(CFLAGS_TARGET) \
-		-I$(CURDIR)/src/target/$(TARGET)
+		-I$(CURDIR)/src/target/$(TARGET) -I$(CURDIR)/$(MFINC)
 
 BOOTLOADER_CFLAGS=$(CFLAGS) -Wl,--section-start=.text=$(BOOTSTART) -DBUILD_BOOTLOADER=1
 
@@ -149,6 +153,9 @@ build/$(OUTPUT_NAME)/%.o : %.c
 	mkdir -p `dirname $@`
 	${CROSS_CC} -c ${CFLAGS} -MMD $< -o $@
 
+# extra rule for mcufonts to make fonts.h
+build/$(OUTPUT_NAME)/mcufont/decoder/mf_font.o: build/fonts/fonts.h
+
 build/$(OUTPUT_NAME).elf: ${OBJECTS}
 	${CROSS_CC} ${CFLAGS} -Wl,-Map,$(@:.elf=.map) $^ -lm -o $@
 	avr-size --format=avr --mcu=${MCU} $@ | tee build/$(OUTPUT_NAME)_size.txt
@@ -166,7 +173,7 @@ build/$(BOOTLOADER_NAME).elf: ${BLOBJECTS}
 	${OBJCOPY} -j .eeprom -O ihex $< ${@:%.hex=%-eeprom.hex}
 
 clean:
-	rm -f $(OBJECTS) $(DEP) $(BLOBJECTS) $(BLDEP)
+	rm -f $(OBJECTS) $(DEP) $(BLOBJECTS) $(BLDEP) $(FONT_SOURCES) build/fonts/fonts.h
 	rm -f build/$(OUTPUT_NAME).elf build/$(BOOTLOADER_NAME).elf
 	rm -f build/$(OUTPUT_NAME).hex  build/$(BOOTLOADER_NAME).hex
 	rm -f build/$(OUTPUT_NAME)-eeprom.hex  build/$(BOOTLOADER_NAME)-eeprom.hex
