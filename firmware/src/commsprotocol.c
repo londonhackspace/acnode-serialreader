@@ -110,7 +110,7 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
 
     unsigned char scratch[2];
     scratch[0] = 0xfd;
-    if(checksum != comms->rxbuffer[length-1])
+    if(checksum != comms->rxbuffer[start+length-1])
     {
         // send nak
         scratch[1] = 0x03;
