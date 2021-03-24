@@ -8,11 +8,17 @@ static std::queue<std::vector<unsigned char>> rxqueue;
 static std::queue<std::vector<unsigned char>> txqueue;
 
 static bool readerVersionQueried = false;
+static bool logReceived = false;
 
 
 extern "C" void comms_query_reader_version_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
 {
     readerVersionQueried = true;
+}
+
+extern "C" void comms_log_message_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    logReceived = true;
 }
 
 static void test_reset()
@@ -547,6 +553,9 @@ static bool test_receive_reader_version_query()
 
     TEST_ASSERT(readerVersionQueried);
 
+    // make sure the buffer is now empty
+    TEST_ASSERT(victim.buffer_level == 0);
+
     TEST_PASS();
 }
 
@@ -583,6 +592,145 @@ static bool test_send_junk_before_ack()
     TEST_PASS();
 }
 
+static bool test_receive_log()
+{
+    std::vector<unsigned char> refmessage = {
+            0x55, 0x23,
+            0xff, 0xdd,
+            0x82, 0x12,
+            0x02,
+            0x07, 'c', 'o', 'n', 't', 'e', 'x', 't',
+            0x07, 'm', 'e', 's', 's', 'a', 'g', 'e',
+            0x72
+        };
+
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+    rxqueue.push(refmessage);
+    logReceived = false;
+
+    comms_poll(&victim);
+
+    TEST_ASSERT(rxqueue.size() == 0);
+
+    TEST_ASSERT(logReceived);
+
+    // make sure it consumed all of it
+    TEST_ASSERT(victim.buffer_level == 0);
+
+    TEST_PASS();
+}
+
+static bool test_receive_log_with_extra_partial_message()
+{
+    // a message, some junk, then two bytes of the next message
+    // we expect it to deal with everything except that last partial message
+    std::vector<unsigned char> refmessage = {
+            0xff, 0xdd,
+            0x82, 0x12,
+            0x02,
+            0x07, 'c', 'o', 'n', 't', 'e', 'x', 't',
+            0x07, 'm', 'e', 's', 's', 'a', 'g', 'e',
+            0x72,
+
+            0x42, 0x42, 0x21,
+
+            0xff, 0xd
+        };
+
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+    rxqueue.push(refmessage);
+    logReceived = false;
+
+    comms_poll(&victim);
+
+    TEST_ASSERT(rxqueue.size() == 0);
+
+    TEST_ASSERT(logReceived);
+
+    // make sure it consumed all of it, except for two remaining bytes
+    TEST_ASSERT(victim.buffer_level == 2);
+
+    TEST_PASS();
+}
+
+static bool test_receive_many_logs()
+{
+    std::vector<unsigned char> refmessage = {
+            0x55, 0x23,
+            0xff, 0xdd,
+            0x82, 0x12,
+            0x02,
+            0x07, 'c', 'o', 'n', 't', 'e', 'x', 't',
+            0x07, 'm', 'e', 's', 's', 'a', 'g', 'e',
+            0x72
+        };
+
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+    for(int i = 0; i < 20; ++i)
+    {
+        rxqueue.push(refmessage);
+    }
+    logReceived = false;
+
+    while(rxqueue.size())
+    {
+        comms_poll(&victim);
+    }
+
+    TEST_ASSERT(logReceived);
+
+    // make sure it consumed all of it
+    TEST_ASSERT(victim.buffer_level == 0);
+
+    TEST_PASS();
+}
+
+static bool test_receive_many_logs_fragmented()
+{
+    std::vector<unsigned char> refmessage_a = {
+            0x55, 0x23,
+            0xff, 0xdd,
+        };
+   std::vector<unsigned char> refmessage_b = {
+            0x82, 0x12,
+            0x02,
+        };
+    std::vector<unsigned char> refmessage_c = {
+            0x07, 'c', 'o', 'n', 't', 'e', 'x', 't',
+            0x07, 'm', 'e', 's', 's', 'a', 'g', 'e',
+            0x72
+        };
+
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+    for(int i = 0; i < 20; ++i)
+    {
+        rxqueue.push(refmessage_a);
+        rxqueue.push(refmessage_b);
+        rxqueue.push(refmessage_c);
+    }
+    logReceived = false;
+
+    while(rxqueue.size())
+    {
+        comms_poll(&victim);
+    }
+
+    TEST_ASSERT(logReceived);
+
+    // make sure it consumed all of it
+    TEST_ASSERT(victim.buffer_level == 0);
+
+    TEST_PASS();
+}
+
 int main(int argc, char** argv)
 {
     int retval = 0;
@@ -613,6 +761,11 @@ int main(int argc, char** argv)
     ADD_TEST(test_send_bootloader_status_response);
 
     ADD_TEST(test_send_junk_before_ack);
+
+    ADD_TEST(test_receive_log);
+    ADD_TEST(test_receive_log_with_extra_partial_message);
+    ADD_TEST(test_receive_many_logs);
+    ADD_TEST(test_receive_many_logs_fragmented);
 
     return retval;
 }

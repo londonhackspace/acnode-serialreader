@@ -226,7 +226,7 @@ void comms_poll(comms_context_t* comms)
         // Not a valid message start, Ack or Nak -> skip it
         if(comms->rxbuffer[i] != 0xff && comms->rxbuffer[i] != 0xfd)
         {
-            processed_to = i;
+            processed_to = i+1;
             continue;
         }
         if(comms->rxbuffer[i] == 0xfd && comms->rxbuffer[i+1] == 0x02)
@@ -234,7 +234,7 @@ void comms_poll(comms_context_t* comms)
             // Woohoo this is an ack!
             comms->state = STATE_IDLE;
             i += 1; // the loop will increment by one but we grabbed two bytes
-            processed_to = i+1;
+            processed_to = i+2;
             comms->retryCounter = 0;
             continue;
         }
@@ -248,7 +248,7 @@ void comms_poll(comms_context_t* comms)
             processed_to = i+1;
             continue;
         }
-        if(comms->rxbuffer[i] == 0xff && comms->rxbuffer[i+1] == 0xdd)
+        else if(comms->rxbuffer[i] == 0xff && comms->rxbuffer[i+1] == 0xdd)
         {
             // do we have enough to be a plausible message?
             if((comms->buffer_level-i) >= 5) // 5 is the shortest possible message
@@ -257,16 +257,26 @@ void comms_poll(comms_context_t* comms)
                 if((comms->buffer_level-i) >= length)
                 {
                     process_message(comms, i, length);
-                    i += length;
-                    processed_to += length;
+                    processed_to = i + length;
+                    // i gets incremented, so add length-1
+                    i += length-1;
                     continue;
                 }
+                else
+                {
+                    // partial message
+                    break;
+                }
+            }
+            else
+            {
+                break;
             }
         }
     }
     //Now we have processed as much as we can, remove anything already processed
     // shortcut for the case where we ate the entire buffer
-    if(processed_to == comms->buffer_level)
+    if(processed_to+1 >= comms->buffer_level)
     {
         comms->buffer_level = 0;
     }
@@ -391,6 +401,15 @@ void comms_send_temperature_query(comms_context_t* comms)
     comms_wait_for_idle(comms);
 
     prepare_tx_buffer(comms, MSG_QUERY_TEMPERATURE, 0);
+    comms->txbuffer[4] = calculate_checksum(comms->txbuffer);
+    send_message(comms);
+}
+
+void comms_reset_reader(comms_context_t* comms)
+{
+    comms_wait_for_idle(comms);
+
+    prepare_tx_buffer(comms, MSG_RESET_READER, 0);
     comms->txbuffer[4] = calculate_checksum(comms->txbuffer);
     send_message(comms);
 }

@@ -101,6 +101,7 @@ void comms_reader_version_response_handler(comms_context_t* comms, unsigned char
 void comms_query_temperature_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
 void comms_temperature_response_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
 
+void comms_reset_reader(comms_context_t* comms);
 void comms_reset_reader_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);
 
 void comms_log_message_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength);

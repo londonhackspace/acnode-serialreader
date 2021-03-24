@@ -8,11 +8,11 @@
 
 build/tests/%.o : %.c
 	mkdir -p `dirname $@`
-	${CC} -c -ggdb -O0 -MMD $< -D__AVR__ -DF_CPU=${FREQUENCY}UL -I`pwd`/tests -o $@
+	${CC} -c -ggdb -O0 -MMD $< -D__AVR__ -DCOMMS_HOST_MODE -DF_CPU=${FREQUENCY}UL -I`pwd`/tests -o $@
 
 build/tests/%.o : %.cpp
 	mkdir -p `dirname $@`
-	${CXX} -c -ggdb -O0 -MMD $< -D__AVR__ -DF_CPU=${FREQUENCY}UL -I`pwd`/tests -o $@
+	${CXX} -c -ggdb -O0 -MMD $< -D__AVR__ -DCOMMS_HOST_MODE -DF_CPU=${FREQUENCY}UL -I`pwd`/tests -o $@
 
 build/test_comms: build/tests/tests/test_comms.o build/tests/src/commsprotocol.o build/tests/src/tickcounter.o
 	${CXX} -O2 $^ -o $@
