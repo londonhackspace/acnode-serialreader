@@ -35,9 +35,11 @@ void comms_default_message_handler(comms_context_t* comms, unsigned char code, u
 DEFAULT_MESSAGE_HANDLER(comms_query_reader_version_handler);
 DEFAULT_MESSAGE_HANDLER(comms_reader_version_response_handler);
 DEFAULT_MESSAGE_HANDLER(comms_log_message_handler);
+DEFAULT_MESSAGE_HANDLER(comms_card_message_handler);
 DEFAULT_MESSAGE_HANDLER(comms_reset_reader_handler);
 DEFAULT_MESSAGE_HANDLER(comms_query_temperature_handler);
 DEFAULT_MESSAGE_HANDLER(comms_temperature_response_handler);
+DEFAULT_MESSAGE_HANDLER(comms_set_led_handler);
 DEFAULT_MESSAGE_HANDLER(comms_query_bootloader_status_handler);
 DEFAULT_MESSAGE_HANDLER(comms_bootloader_status_response_handler);
 DEFAULT_MESSAGE_HANDLER(comms_bootloader_write_data_handler);
@@ -60,11 +62,13 @@ enum message_nums
     MSG_QUERY_READER_VERSION = 0x01,
     MSG_QUERY_TEMPERATURE = 0x03,
     MSG_RESET_READER = 0x04,
+    MSG_SET_LEDS = 0x05,
     MSG_QUERY_BOOTLOADER_STATUS = 0x20,
     MSG_WRITE_BOOTLOADER_DATA = 0x21,
     MSG_READER_VERSION_RESPONSE = 0x81,
     MSG_LOG = 0x82,
     MSG_TEMPERATURE_RESPONSE = 0x83,
+    MSG_CARD = 0x86,
     MSG_BOOTLOADER_STATUS_RESPONSE = 0xa0,
 
     MSG_UNKNOWN_MESSAGE_REPLY_H2R = 0x7f,
@@ -146,6 +150,10 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
         {
             comms_bootloader_write_data_handler(comms, code, payload, payloadLength);
         } break;
+        case MSG_SET_LEDS:
+        {
+            comms_set_led_handler(comms, code, payload, payloadLength);
+        } break;
 // If we're building the bootloader, skip some options to save a bit of code space
 #ifndef BUILD_BOOTLOADER
         case MSG_QUERY_READER_VERSION:
@@ -179,6 +187,10 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
         {
             comms_log_message_handler(comms, code, payload, payloadLength);
         } break;
+        case MSG_CARD:
+        {
+            comms_card_message_handler(comms, code, payload, payloadLength);
+        } break;
 #endif // COMMS_HOST_MODE
         case MSG_UNKNOWN_MESSAGE_REPLY_H2R:
         {
@@ -206,7 +218,7 @@ void comms_poll(comms_context_t* comms)
     // do we need to attempt a retransmission?
     if(comms->state == STATE_WAIT_ACK)
     {
-        if(compare_timer_values(tickcounter_get(), comms->ackWaitCounter) >= 1000)
+        if(compare_timer_values(tickcounter_get(), comms->ackWaitCounter) >= 100)
         {
             comms->send(comms->txbuffer, comms->lastmsglength);
             comms->ackWaitCounter = tickcounter_get();
@@ -396,12 +408,38 @@ void comms_send_logz_flash(comms_context_t* comms, int level, const char* contex
 }
 #endif
 
+void comms_send_card_message(comms_context_t* comms, unsigned char length, const unsigned char* uid)
+{
+    comms_wait_for_idle(comms);
+
+    prepare_tx_buffer(comms, MSG_CARD, 1+length);
+    comms->txbuffer[4] = length;
+    if(length > 0)
+    {
+        memcpy(comms->txbuffer+5, uid, length);
+    }
+    comms->txbuffer[5+length] = calculate_checksum(comms->txbuffer);
+    send_message(comms);
+}
+
 void comms_send_temperature_query(comms_context_t* comms)
 {
     comms_wait_for_idle(comms);
 
     prepare_tx_buffer(comms, MSG_QUERY_TEMPERATURE, 0);
     comms->txbuffer[4] = calculate_checksum(comms->txbuffer);
+    send_message(comms);
+}
+
+void comms_send_set_leds(comms_context_t* comms, unsigned char r, unsigned char g, unsigned char b)
+{
+    comms_wait_for_idle(comms);
+
+    prepare_tx_buffer(comms, MSG_SET_LEDS, 3);
+    comms->txbuffer[4] = r;
+    comms->txbuffer[5] = g;
+    comms->txbuffer[6] = b;
+    comms->txbuffer[7] = calculate_checksum(comms->txbuffer);
     send_message(comms);
 }
 

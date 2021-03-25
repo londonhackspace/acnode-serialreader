@@ -71,6 +71,12 @@ void comms_query_bootloader_status_handler(comms_context_t* comms, unsigned char
     comms_send_bootloader_status_response(comms, BOOTLOADER_STATUS_NOT_BOOTLOADER);
 }
 
+void comms_set_led_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    lights_set(payload[0], payload[1], payload[2]);
+    //INFO_LOG_LITERAL("LEDs Updated");
+}
+
 int main()
 {
     // disable the watchdog timer so it doesn't interrupt us until we are ready
@@ -89,7 +95,7 @@ int main()
     tickcounter_init();
     
     lights_init();
-    lights_set(128,0, 128);
+    lights_set(255, 0, 0);
 
     i2c_init();
 
@@ -111,10 +117,6 @@ int main()
     wdt_reset();
     wdt_enable(WDTO_500MS);
 
-    int val = 0;
-    int chan = 0;
-    unsigned long int lastupdate = tickcounter_get();
-
     while(1)
     {
         wdt_reset();
@@ -124,42 +126,6 @@ int main()
         #ifdef HAS_DISPLAY
         ssd1306_poll(&ssd1306);
         #endif
-
-        if((tickcounter_get() - lastupdate) >= 12)
-        {
-            lastupdate = tickcounter_get();
-            if(val == 255)
-            {
-                val = 0;
-                ++ chan;
-                if(chan > 2)
-                {
-                    chan = 0;
-                }
-            }
-            else
-            {
-                ++val;
-            }
-
-            unsigned int red = 0;
-            unsigned int blue = 0;
-            unsigned int green = 0;
-
-            if(chan == 0)
-            {
-                red = val;
-            }
-            else if(chan == 1)
-            {
-                green = val;
-            }
-            else
-            {
-                blue = val;
-            }
-            lights_set(red,green,blue);
-        }
     }
 
     return 0;

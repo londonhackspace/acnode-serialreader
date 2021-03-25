@@ -1,5 +1,5 @@
 /******************************************************************************
-* ACNodeReader Firmware - Rev1.1 (w/328pb) Features                             *
+* ACNodeReader Firmware - Rev1.1 Features                                     *
 *                                                                             *
 * (c) 2020 London Hackspace                                                   *
 * Released under a 3-clause BSD license. See included LICENSE file.           *

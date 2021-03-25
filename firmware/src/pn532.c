@@ -295,8 +295,8 @@ void pn532_poll(pn532_context_t* context)
         } break;
     case STATE_IDLE:
         {
-            // retry 250ms after the last card probe
-            if(pn532_state_expired(context, 250))
+            // retry 100ms after the last card probe
+            if(pn532_state_expired(context, 100))
             {
                 if(!pn532_rfon(context))
                 {
@@ -370,7 +370,31 @@ void pn532_poll(pn532_context_t* context)
 
                     if(cardCount > 0)
                     {
+                        uint8_t cardType = context->buffer[context->packet_start+7];
+                        if(cardType == 0x10 || cardType == 0x20)
+                        {
+                            uint8_t uidLen = context->buffer[context->packet_start+13];
+                            DEBUG_LOG_BUFFER("UID", context->buffer+context->packet_start+14, uidLen);
+                            comms_send_card_message(&comms, uidLen, context->buffer+context->packet_start+14);
+
+                        }
+                        else if(cardType == 0x11)
+                        {
+                            // length is 8
+                            DEBUG_LOG_BUFFER("UID", context->buffer+context->packet_start+12, 8);
+                            comms_send_card_message(&comms, 8, context->buffer+context->packet_start+12);
+                        }
+                        else
+                        {
+                            ERROR_LOG_LITERAL("Unknown Card Type");
+                            DEBUG_LOG_BUFFER("Unknown card type", &cardType, 1 );
+                        }
                         INFO_LOG_LITERAL("Found a card");
+
+                    }
+                    else
+                    {
+                        comms_send_card_message(&comms, 0, NULL);                        
                     }
 
                     pn532_state_transition(context, STATE_IDLE);

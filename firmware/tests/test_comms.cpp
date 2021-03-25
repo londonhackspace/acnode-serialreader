@@ -10,6 +10,9 @@ static std::queue<std::vector<unsigned char>> txqueue;
 static bool readerVersionQueried = false;
 static bool logReceived = false;
 
+static uint8_t led_r = 0;
+static uint8_t led_g = 0;
+static uint8_t led_b = 0;
 
 extern "C" void comms_query_reader_version_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
 {
@@ -19,6 +22,13 @@ extern "C" void comms_query_reader_version_handler(comms_context_t* comms, unsig
 extern "C" void comms_log_message_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
 {
     logReceived = true;
+}
+
+extern "C" void comms_set_led_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
+{
+    led_r = payload[0];
+    led_g = payload[1];
+    led_b = payload[2];
 }
 
 static void test_reset()
@@ -731,6 +741,40 @@ static bool test_receive_many_logs_fragmented()
     TEST_PASS();
 }
 
+bool test_light_set_in_middle_of_logs()
+{
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+
+    std::vector<unsigned char> lightmessage = {
+            0xff, 0xdd,
+            0x05, 0x04,
+            0xff, 0x37, 0x00,
+            0xc1,
+        };
+
+        comms_send_logz(&victim, 1, "context", "Testing a log message");
+        comms_poll(&victim);
+        // remove any transmitted bytes since we don't actually care about them
+        while(txqueue.size()) txqueue.pop();
+
+        // send lights set message
+        rxqueue.push(lightmessage);
+        comms_poll(&victim);
+
+        // there should be an ack here
+        TEST_ASSERT(txqueue.size() == 1);
+        TEST_ASSERT(txqueue.front() == std::vector<unsigned char>({0xfd, 0x02}));
+
+        // lights should be set
+        TEST_ASSERT(led_r == 0xff);
+        TEST_ASSERT(led_g == 0x37);
+        TEST_ASSERT(led_b == 0x00);
+
+        TEST_PASS();
+}
+
 int main(int argc, char** argv)
 {
     int retval = 0;
@@ -766,6 +810,8 @@ int main(int argc, char** argv)
     ADD_TEST(test_receive_log_with_extra_partial_message);
     ADD_TEST(test_receive_many_logs);
     ADD_TEST(test_receive_many_logs_fragmented);
+
+    ADD_TEST(test_light_set_in_middle_of_logs);
 
     return retval;
 }

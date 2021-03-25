@@ -62,11 +62,13 @@ Valid but unknown messages should be ACKnowledged to avoid the other end resendi
 | 0x01 | 0 | Query Reader Version | Host->Reader |
 | 0x03 | 0 | Query Temperature | Host->Reader |
 | 0x04 | 0 | Reset Reader | Host->Reader |
+| 0x05 | 3 | Set LEDs | Host->Reader |
 | 0x20 | 0 | Get Bootloader Status | Host->Reader |
 | 0x21 | Varies | Write Firmware (Bootloader) | Host->Reader |
 | 0x81 | Varies | Reader Version Response | Reader->Host |
 | 0x82 | Varies | Log Message | Reader->Host |
 | 0x83 | 2 | Temperature Response | Reader->Host |
+| 0x86 | Varies | Card Message | Reader->Host |
 | 0x7f | 1 | Unknown Message Reply | Host->Reader |
 | 0xa0 | 1 | Bootloader Status Response | Reader->Host |
 | 0xff | 1 | Unknown Message Reply | Reader->Host |
@@ -85,6 +87,16 @@ Valid but unknown messages should be ACKnowledged to avoid the other end resendi
 *Description:* Reset the reader CPU
 *Direction:* Host->Reader
 *Payload:* None
+
+#### Set LEDs (0x05)
+*Description:* Set the LED status
+*Direction:* Host->Reader
+*Payload:*
+
+| 0 | 1 | 2 |
+| R | G | B |
+
+The address of the first byte must be the boundary of a page
 
 #### Query Bootloader Status (0x20)
 *Description:* Get the status of the bootloader
@@ -116,10 +128,12 @@ The address of the first byte must be the boundary of a page
 *Payload:* 
 
 | 0 | 1 | 2-n | n+1 | n+1 - end |
-| --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | Level | Context Length | Context | Message Length | MessageString |
 
+
 | Numeric Level | Level Name |
+| --- | --- |
 | 0 | Error |
 | 1 | Warning |
 | 2 | Informational |
@@ -130,11 +144,21 @@ The address of the first byte must be the boundary of a page
 *Direction:* Reader->Host
 *Payload:*
 | 0 | 1 |
+| --- | --- |
 | Integer Temperature | Fractional Temperature |
 
 Temperature is given in celcius. The high bit is of the integer part is the sign bit. 
 
 You can treat this as a 15 bit integer and divide by 256.
+
+#### Card Message (0x86)
+*Description:* Card Message from Reader
+*Direction:* Reader->Host
+*Payload:* 
+
+| 0 | 1-n |
+| --- | --- |
+| id length | Card ID
 
 #### Bootloader Status Response (0xa0)
 *Description:* Details of bootloader status from reader
