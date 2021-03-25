@@ -3,9 +3,12 @@ dist: bionic
 
 # build each debug level, to make sure they all work
 env:
-  - DEBUG=0 TARGET=Arduino
-  - DEBUG=1 TARGET=Arduino
-  - DEBUG=2 TARGET=Arduino
+  - DEBUG=0 TARGET=Rev1.1
+  - DEBUG=1 TARGET=Rev1.1
+  - DEBUG=2 TARGET=Rev1.1
+  - DEBUG=0 TARGET=Rev1.1-328
+  - DEBUG=1 TARGET=Rev1.1-328
+  - DEBUG=2 TARGET=Rev1.1-328
   - DEBUG=0 TARGET=DebugBoard09
   - DEBUG=1 TARGET=DebugBoard09
   - DEBUG=2 TARGET=DebugBoard09
