@@ -235,12 +235,6 @@ void comms_poll(comms_context_t* comms)
     unsigned int processed_to = 0;
     for(unsigned int i = 0; i < comms->buffer_level-1; ++i)
     {
-        // Not a valid message start, Ack or Nak -> skip it
-        if(comms->rxbuffer[i] != 0xff && comms->rxbuffer[i] != 0xfd)
-        {
-            processed_to = i+1;
-            continue;
-        }
         if(comms->rxbuffer[i] == 0xfd && comms->rxbuffer[i+1] == 0x02)
         {
             // Woohoo this is an ack!
@@ -266,6 +260,13 @@ void comms_poll(comms_context_t* comms)
             if((comms->buffer_level-i) >= 5) // 5 is the shortest possible message
             {
                 unsigned int length = 4+comms->rxbuffer[i+3];
+                // we need space for the message plus the header
+                if(length > COMMS_RXBUFFER_SIZE-3)
+                {
+                    // message too long - no way we could process this!
+                    processed_to = COMMS_RXBUFFER_SIZE;
+                    break;
+                }
                 if((comms->buffer_level-i) >= length)
                 {
                     process_message(comms, i, length);
@@ -284,6 +285,11 @@ void comms_poll(comms_context_t* comms)
             {
                 break;
             }
+        }
+        else
+        {
+            processed_to = i+1;
+            continue;
         }
     }
     //Now we have processed as much as we can, remove anything already processed
