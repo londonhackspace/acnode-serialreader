@@ -646,7 +646,7 @@ static bool test_receive_log_with_extra_partial_message()
 
             0x42, 0x42, 0x21,
 
-            0xff, 0xd
+            0xff, 0xdd
         };
 
     comms_context_t victim;
