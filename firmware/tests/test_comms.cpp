@@ -775,6 +775,40 @@ bool test_light_set_in_middle_of_logs()
         TEST_PASS();
 }
 
+bool test_send_after_receive_while_waiting_for_ack()
+{
+    comms_context_t victim;
+    comms_init(&victim);
+    comms_set_handlers(&victim, txfunc, rxfunc);
+
+    victim.state = 1; // waiting for ACK
+
+    // this will trigger an "unknown" reply
+    std::vector<unsigned char> unknownmessage = {
+            0xff, 0xdd,
+            0x77, 0x01,
+            0x88,
+        };
+
+    std::vector<unsigned char> ackmessage = {
+            0xfd, 0x02,
+        };
+
+    rxqueue.push(unknownmessage);
+    rxqueue.push(ackmessage);
+
+    // two polls for the two messages we queued
+    comms_poll(&victim);
+    comms_poll(&victim);
+
+    // Sanity check: we should have got an ack and a single message reply
+    // I'm not going to check too deep since this is actually something of
+    // a death test - the bug I'm trying to reproduce here causes a stack overflow!
+    TEST_ASSERT(txqueue.size() == 2);
+
+    TEST_PASS();   
+}
+
 int main(int argc, char** argv)
 {
     int retval = 0;
@@ -812,6 +846,7 @@ int main(int argc, char** argv)
     ADD_TEST(test_receive_many_logs_fragmented);
 
     ADD_TEST(test_light_set_in_middle_of_logs);
+    ADD_TEST(test_send_after_receive_while_waiting_for_ack);
 
     return retval;
 }

@@ -21,6 +21,9 @@ static const unsigned int max_tx_payload = COMMS_TXBUFFER_SIZE - 5;
 
 static unsigned char calculate_checksum(const unsigned char* data);
 
+// forward declaration so we can use it everywhere
+static void process_acknaks(comms_context_t* comms);
+
 // Weak implementations of the message processors
 void comms_default_message_handler(comms_context_t* comms, unsigned char code, unsigned char* payload, size_t payloadLength)
 {
@@ -101,6 +104,17 @@ static void process_receive(comms_context_t* comms)
 // remove some bytes from the middle (or end) of the rx buffer
 static void close_gap(comms_context_t* comms, unsigned int start, unsigned int count)
 {
+    if(comms->buffer_level <= count)
+    {
+        comms->buffer_level = 0;
+        return;
+    }
+
+    if(count == 0)
+    {
+        return;
+    }
+
     for(unsigned int i = start; i < comms->buffer_level-count; ++i)
     {
         comms->rxbuffer[i] = comms->rxbuffer[i+count];
@@ -108,7 +122,7 @@ static void close_gap(comms_context_t* comms, unsigned int start, unsigned int c
     comms->buffer_level -= count;
 }
 
-static void process_message(comms_context_t* comms, unsigned int start, unsigned int length)
+static bool process_message(comms_context_t* comms, unsigned int start, unsigned int length)
 {
     unsigned char checksum = calculate_checksum(comms->rxbuffer+start);
 
@@ -118,18 +132,30 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
     {
         // send nak
         scratch[1] = 0x03;
+        comms->send(scratch, 2);
     }
     else
     {
         scratch[1] = 0x02;
+        // Of course, we also need ack retries!
+        if((tickcounter_get() - comms->lastSentAck) > 500)
+        {
+            comms->lastSentAck = tickcounter_get();
+            comms->send(scratch, 2);
+        }
     }
 
-    comms->send(scratch, 2);
-
     // If we just sent a NAK, there's no point continuing
+    // We did handle the message though, so return true
     if(scratch[1] == 0x03)
     {
-        return;
+        return true;
+    }
+
+    // We can't go further if we're waiting for an ack
+    if(comms->state == STATE_WAIT_ACK)
+    {
+        return false;
     }
 
     unsigned char code = comms->rxbuffer[start+2];
@@ -207,41 +233,23 @@ static void process_message(comms_context_t* comms, unsigned int start, unsigned
             comms_default_message_handler(comms, code, payload, payloadLength);
         }
     }
+
+    return true;
 }
 
-//void lights_set(int,int,int);
-
-void comms_poll(comms_context_t* comms)
+static void process_acknaks(comms_context_t* comms)
 {
     process_receive(comms);
 
-    // do we need to attempt a retransmission?
-    if(comms->state == STATE_WAIT_ACK)
-    {
-        if(compare_timer_values(tickcounter_get(), comms->ackWaitCounter) >= 100)
-        {
-            comms->send(comms->txbuffer, comms->lastmsglength);
-            comms->ackWaitCounter = tickcounter_get();
-            ++comms->retryCounter;
-        }
-    }
-
-    // a single byte isn't much good to anyone
-    if(comms->buffer_level < 2)
-    {
-        return;
-    }
-
-    unsigned int processed_to = 0;
-    for(unsigned int i = 0; i < comms->buffer_level-1; ++i)
+    for(unsigned int i = 0; (comms->buffer_level >= 2) && (i < comms->buffer_level-1);)
     {
         if(comms->rxbuffer[i] == 0xfd && comms->rxbuffer[i+1] == 0x02)
         {
             // Woohoo this is an ack!
             comms->state = STATE_IDLE;
-            i += 1; // the loop will increment by one but we grabbed two bytes
-            processed_to = i+2;
             comms->retryCounter = 0;
+
+            close_gap(comms, i, 2);
             continue;
         }
         else if(comms->rxbuffer[i] == 0xfd && comms->rxbuffer[i+1] == 0x03)
@@ -250,7 +258,76 @@ void comms_poll(comms_context_t* comms)
             comms->send(comms->txbuffer, comms->lastmsglength);
             comms->ackWaitCounter = tickcounter_get();
             ++comms->retryCounter;
-            i += 1; // the loop will increment by one but we grabbed two bytes
+
+            close_gap(comms, i, 2);
+            continue;
+        }
+        else
+        {
+            ++i;
+        }
+    }
+
+    // do we need to attempt a retransmission?
+    if(comms->state == STATE_WAIT_ACK)
+    {
+        if(compare_timer_values(tickcounter_get(), comms->ackWaitCounter) >= 500)
+        {
+            comms->send(comms->txbuffer, comms->lastmsglength);
+            comms->ackWaitCounter = tickcounter_get();
+            ++comms->retryCounter;
+        }
+    }
+}
+
+//void lights_set(int,int,int);
+
+void comms_poll(comms_context_t* comms)
+{
+    process_receive(comms);
+
+    /*
+     * The problem: messages may trigger a reply, replies may trigger
+     *     processing of messages waiting for an ack on the last sent
+     *     message so the reply can be sent. This can cause infinite
+     *     loops, leading to stack overflow. An easy solution would be to
+           copy messages elsewhere while parsing, however we don't have enough
+           RAM for that (well, maybe, but it would be very tight)
+     *
+     * The solution: Process ACKs in one pass, then messages in a separate
+     *      pass. This means the ACK processing can  be used on its own, in
+     *      the send code (see wait_for_idle())
+     *      
+     *      The first solution tried was actually to only process receive messages
+     *      when not waiting for an ACK, but I believe that can cause a deadlock if both
+     *      ends send messages at the same time, so this version will still process messages
+    *       enough to send an ack.
+     */
+
+    // Stage 1: ACKs/NAKs
+    process_acknaks(comms);
+   
+    // only continue if there is still enough data remaining
+    if(comms->buffer_level < 2)
+    {
+        return;
+    }
+
+    // Stage 2: Everything Else
+    unsigned int processed_to = 0;
+    for(unsigned int i = 0; i < comms->buffer_level-1; ++i)
+    {
+        if(comms->rxbuffer[i] == 0xfd && comms->rxbuffer[i+1] == 0x02)
+        {
+            // it's an ack. ignore it.
+            i += 1;
+            processed_to = i+1;
+            continue;
+        }
+        else if(comms->rxbuffer[i] == 0xfd && comms->rxbuffer[i+1] == 0x03)
+        {
+            // it's an nak. ignore it.
+            i += 1;
             processed_to = i+1;
             continue;
         }
@@ -269,7 +346,13 @@ void comms_poll(comms_context_t* comms)
                 }
                 if((comms->buffer_level-i) >= length)
                 {
-                    process_message(comms, i, length);
+                    // We might have bailed on processing if we're waiting for an ack
+                    if(!process_message(comms, i, length))
+                    {
+                        break;
+                    }
+                    // we're now done with the message we sent an ack for
+                    comms->lastSentAck = 0;
                     processed_to = i + length;
                     // i gets incremented, so add length-1
                     i += length-1;

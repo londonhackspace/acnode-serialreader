@@ -53,6 +53,8 @@ typedef struct
     // counter to handle how many polls we've been waiting for a response
     unsigned long int ackWaitCounter;
     unsigned int retryCounter;
+
+    unsigned long int lastSentAck;
 } comms_context_t;
 
 enum loglevels
