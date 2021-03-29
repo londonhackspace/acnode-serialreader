@@ -10,12 +10,21 @@ build/tests/%.o : %.c
 	mkdir -p `dirname $@`
 	${CC} -c -ggdb -O0 -MMD $< -D__AVR__ -DCOMMS_HOST_MODE -DF_CPU=${FREQUENCY}UL -I`pwd`/tests -o $@
 
+build/tools/%.o : %.c
+	mkdir -p `dirname $@`
+	${CC} -c -ggdb -O0 -MMD $< -D__AVR__ -DCOMMS_HOST_MODE -DF_CPU=${FREQUENCY}UL -I`pwd`/tools -o $@
+
 build/tests/%.o : %.cpp
 	mkdir -p `dirname $@`
 	${CXX} -c -ggdb -O0 -MMD $< -D__AVR__ -DCOMMS_HOST_MODE -DF_CPU=${FREQUENCY}UL -I`pwd`/tests -o $@
 
 build/test_comms: build/tests/tests/test_comms.o build/tests/src/commsprotocol.o build/tests/src/tickcounter.o
-	${CXX} -O2 $^ -o $@
+	${CXX} -O0 $^ -o $@
 
 test: build/test_comms
 	build/test_comms
+
+build/commsfuzzharness: build/tools/tools/commsfuzzharness.o build/tests/src/commsprotocol.o build/tests/src/tickcounter.o
+	${CXX} -O0 $^ -o $@
+
+fuzzharness: build/commsfuzzharness
